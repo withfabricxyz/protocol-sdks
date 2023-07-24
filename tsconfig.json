@@ -1,0 +1,28 @@
+{
+  "include": ["src"],
+  "exclude": [],
+  "compilerOptions": {
+    "incremental": true,
+    "strict": true,
+
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": false,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": false,
+    "importHelpers": true,
+
+    "skipLibCheck": true,
+    "allowJs": false,
+    "checkJs": false,
+    // "resolveJsonModule": true,
+
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "es2021",
+    "lib": [
+      "ES2021",
+      "DOM"
+    ],
+
+  }
+}

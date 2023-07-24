@@ -1,0 +1,27 @@
+name: Protocol SDK Tests
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+    - name: Install deps
+      run: npm i
+    - name: Linter check
+      run: npm run lint
+    - name: Ensure the App Builds
+      run: npm run build
+    - name: Check Bundle Sizes
+      run: npm run size
+    - name: Run Tests
+      run: npm run test:ci
