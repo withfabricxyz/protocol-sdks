@@ -213,6 +213,14 @@ export class CampaignAccountContext {
   }
 
   /**
+   * @description Check if a token approval transaction is prepared
+   * @returns true if a token approval transaction is prepared
+   */
+  isApprovalPrepared() : boolean {
+    return this.approveTxn !== undefined;
+  }
+
+  /**
    * @description Execute the prepared token approval transaction
    * @returns The transaction receipt
    */
@@ -243,6 +251,14 @@ export class CampaignAccountContext {
   }
 
   /**
+   * @description Check if a contribution transaction is prepared
+   * @returns true if a contribution transaction is prepared
+   */
+  isContributionPrepared() : boolean {
+    return this.contributeTxn !== undefined;
+  }
+
+  /**
    * @description Execute the prepared contribution transaction
    * @returns The transaction receipt
    */
@@ -267,6 +283,14 @@ export class CampaignAccountContext {
     this.transferTxn = await prepareCampaignFundsTransfer({
       campaignAddress: this.state.address,
     });
+  }
+
+  /**
+   * @description Check if a transfer transaction is prepared
+   * @returns true if a transfer transaction is prepared
+   */
+  isTransferPrepared() : boolean {
+    return this.transferTxn !== undefined;
   }
 
   /**
@@ -300,6 +324,14 @@ export class CampaignAccountContext {
   }
 
   /**
+   * @description Check if a yield transaction is prepared
+   * @returns true if a yield transaction is prepared
+   */
+  isYieldPrepared() : boolean {
+    return this.yieldTxn !== undefined;
+  }
+
+  /**
    * @description Execute the prepared yield transaction
    * @returns The transaction receipt
    */
@@ -324,6 +356,14 @@ export class CampaignAccountContext {
     this.withdrawTxn = await prepareCampaignWithdraw({
       campaignAddress: this.state.address,
     });
+  }
+
+  /**
+   * @description Check if a withdraw transaction is prepared
+   * @returns true if a withdraw transaction is prepared
+   */
+  isWithdrawPrepared() : boolean {
+    return this.withdrawTxn !== undefined;
   }
 
   /**
