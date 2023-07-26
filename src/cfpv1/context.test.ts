@@ -49,9 +49,12 @@ describe('context API', () => {
       expect(approvalReceipt.status).toEqual('success');
     }
 
+    expect(context.isContributionPrepared()).toEqual(false);
     await context.prepareContribution(contribution);
+    expect(context.isContributionPrepared()).toEqual(true);
     const contributionReceipt = await context.executeContribution();
     expect(contributionReceipt.status).toEqual('success');
+    expect(context.isContributionPrepared()).toEqual(false);
 
     // Refresh context to ensure new state is reflected
     context = await context.refresh();
@@ -65,20 +68,29 @@ describe('context API', () => {
     const yieldAmount = 420n;
 
     if (context.isTokenApprovalRequired(yieldAmount)) {
+      expect(context.isApprovalPrepared()).toEqual(false);
       await context.prepareTokenApproval(yieldAmount);
+      expect(context.isApprovalPrepared()).toEqual(true);
       const yieldApprovalReceipt = await context.executeTokenApproval();
       expect(yieldApprovalReceipt.status).toEqual('success');
+      expect(context.isApprovalPrepared()).toEqual(false);
     }
 
     context = await context.refresh();
 
+    expect(context.isYieldPrepared()).toEqual(false);
     await context.prepareYield(yieldAmount);
+    expect(context.isYieldPrepared()).toEqual(true);
     const yieldReceipt = await context.executeYield();
     expect(yieldReceipt.status).toEqual('success');
+    expect(context.isYieldPrepared()).toEqual(false);
 
     // do withdraw
+    expect(context.isWithdrawPrepared()).toEqual(false);
     await context.prepareWithdraw();
+    expect(context.isWithdrawPrepared()).toEqual(true);
     const withdrawReceipt = await context.executeWithdraw();
     expect(withdrawReceipt.status).toEqual('success');
+    expect(context.isWithdrawPrepared()).toEqual(false);
   });
 });

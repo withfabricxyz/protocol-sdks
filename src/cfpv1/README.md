@@ -6,46 +6,9 @@
 
 ### Basic Usage
 
-All examples assume wagmi is configured in your application.
-
-#### Contributing to a Campaign
-
-```ts
-import { fetchCampaignAccountContext } from '@withfabric/protocol-sdks';
-import { getAccount } from '@wagmi/core';
-
-const campaignAddress = '0x...';
-const account = getAccount().address!;
-
-// Fetch state and account status for a given CFPv1 Campaign
-const context = await fetchCampaignAccountContext({ campaignAddress, account });
-
-// The amount of base tokens (wei, etc) to contribute. For example, 1ETH = 10 ** 18 wei
-const contribution = 10000000n;
-
-if(!context.isContributionPossible(contribution)) {
-  throw new Error('No can do buckaroo ' + context.getContributePreflightResults(contribution).join(', '));
-}
-
-// ERC-20 based campaigns require approval, if and only if the approved amount < contribution
-if (context.isTokenApprovalRequired(contribution)) {
-  // All operations work as prepare + execute to avoid UX pitfalls with mobile wallets
-  await context.prepareTokenApproval(contribution);
-
-  // Execute the approval and return TransactionReceipt
-  const approvalReceipt = await context.executeTokenApproval();
-}
-
-// Prepare the contribution call itself
-await context.prepareContribution(contribution);
-
-// Execute the contribution and return TransactionReceipt
-const receipt = await context.executeContribution();
-```
+All examples assume wagmi/wagmi-core is configured in your application.
 
 #### Deploying a Campaign
-
-This assumes a connected account on a supported chain.
 
 ```ts
 import { parseEther, zeroAddress } from 'viem';
@@ -69,8 +32,119 @@ const preparedDeployment = await prepareCampaignDeployment(config);
 const { campaignAddress, receipt } = await preparedDeployment();
 
 if(receipt.status !== 'success') {
-  throw new Error('Failed to deploy campaign);
+  throw new Error('Failed to deploy campaign');
+}
+```
+
+#### Interacting with a Campaign
+
+The SDK provides a context object which operates within the scope of an account and campaign contract. First build
+a context object
+
+```ts
+import { fetchCampaignAccountContext } from '@withfabric/protocol-sdks';
+import { getAccount } from '@wagmi/core';
+
+const campaignAddress = '0x...';
+const account = getAccount().address!;
+
+const context = await fetchCampaignAccountContext({ campaignAddress, account });
+```
+
+Once you have context... contributing, withdrawing, etc. are done through the object using
+a preflight, prepare, execute pattern. This pattern is opinionated, but has the following benefits:
+
+1. Simulates transactions to estimate gas and ensure the txn is possible
+2. Defers execution after preparation to prevent mobile UX issues when deep linking
+
+#### General Pattern (Applies to all actions)
+
+```ts
+const numTokens = parseEther('0.1');
+
+// Quick check to see if it's allowed (no onchain calls)
+context.isContributionPossible(numTokens);
+
+// Reasons why it's not possible
+context.getContributePreflightResults(numTokens);
+
+// First checks if it's possible using local state, then simulates the transaction onchain
+// and prepares the final transaction for execution. This will throw an error if the preflight
+// checks fail, or the simulation fails.
+await context.prepareContribution(numTokens);
+
+// Signs and sends the prepare contribution txn via wallet. This should happen
+// immediately after a tap on mobile to prevent a prompt or app store redirect
+const receipt = await context.executeContribution();
+```
+
+#### Contributing to a Campaign
+
+```ts
+const contributionAmount = parseEther('0.1');
+
+// If the campaign is ERC-20 denominated, check the approved amount for the campaign
+if (context.isTokenApprovalRequired(contribution)) {
+  await context.prepareTokenApproval(contribution);
+  await context.executeTokenApproval();
 }
 
-// ...
+await context.prepareContribution(contribution);
+const receipt = await context.executeContribution();
+```
+
+#### Withdrawing
+
+```ts
+await context.prepareWithdraw();
+const receipt = await context.executeWithdraw();
+```
+
+#### Transferring Goal Balance
+
+```ts
+await context.prepareTransfer();
+const receipt = await context.executeTransfer();
+```
+
+#### Yielding
+
+If the campaign is successful, any funds yielded back to the contract are split, pro-rata, for all
+contributors. Those contributors can then withdraw those tokens.
+
+```ts
+const yieldAmount = parseEther('0.5');
+
+// If the campaign is ERC-20 denominated, check the approved amount for the campaign
+if (context.isTokenApprovalRequired(contribution)) {
+  await context.prepareTokenApproval(contribution);
+  await context.executeTokenApproval();
+}
+
+await context.prepareYield(yieldAmount); // Could throw
+const receipt = await context.executeYield();
+```
+
+#### Refreshing Context
+
+After transacting with the contract, you may want to display updated
+state from the context object. The refresh method will return a new context
+object with updated state from chain state.
+
+```ts
+context = context.refresh();
+```
+
+### Alternative Approach
+
+If you prefer not to leverage context, there are functions to perform all actions.
+
+[See campaign.ts](campaign.ts)
+
+```ts
+const prepared = await prepareCampaignContribution({
+  campaignAddress: '0x0...0',
+  amount: 100000n,
+});
+const receipt = await prepared();
 ```
