@@ -2,13 +2,16 @@ import { readContracts, prepareWriteContract } from '@wagmi/core';
 import { TransactionReceipt } from 'viem';
 import { erc20TokenABI } from '../generated.js';
 import { writePreparedAndFetchReceipt } from '../utils.js';
+import { TMappingMulticall } from '../utils.js';
 
 export type ApprovalRequest = {
+  /** The address of the ERC-20 token */
   address: `0x${string}`;
+  /** The address of spender */
   spender: `0x${string}`;
   /** The amount of ERC-20 tokens to approve */
   amount: bigint;
-}
+};
 
 export type AllowanceRequest = Omit<ApprovalRequest, 'amount'> & {
   owner: `0x${string}`;
@@ -20,6 +23,33 @@ export type ApprovedTokens = {
   /** The amount of ERC-20 tokens approved for use */
   approved: bigint;
 };
+
+export function prepareHoldingsMulticall(
+  campaignAddress: `0x${string}`,
+  erc20Address: `0x${string}`,
+  account: `0x${string}`,
+  state: Partial<ApprovedTokens>,
+): TMappingMulticall<ApprovedTokens>[] {
+  const contract = {
+    address: erc20Address,
+    abi: erc20TokenABI,
+  };
+
+  return [
+    {
+      ...contract,
+      functionName: 'balanceOf',
+      args: [account],
+      fn: (r: bigint) => (state.balance = r),
+    },
+    {
+      ...contract,
+      functionName: 'allowance',
+      args: [account, campaignAddress],
+      fn: (r: bigint) => (state.approved = r),
+    },
+  ];
+}
 
 /**
  * Prepare a transaction to approve a campaign to spend a given amount of tokens on a contributor's behalf.
@@ -33,7 +63,9 @@ export type ApprovedTokens = {
  * This returned function itself executes the prepared transaction and returns a transaction receipt.
  *
  */
-export async function prepareTokenApproval(request: ApprovalRequest) : Promise<() => Promise<TransactionReceipt>> {
+export async function prepareTokenApproval(
+  request: ApprovalRequest,
+): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteContract({
     abi: erc20TokenABI,
     address: request.address,
@@ -49,8 +81,13 @@ export async function prepareTokenApproval(request: ApprovalRequest) : Promise<(
  * @param request - The allowance request
  * @returns the balance of ERC-20 tokens owned by a contributor and the allowance approved by a contributor for a campaign
  */
-export async function fetchTokenAllowance(request: AllowanceRequest) : Promise<ApprovedTokens> {
-  const { 0: { result: balance }, 1: { result: approved } }  = await readContracts({
+export async function fetchTokenAllowance(
+  request: AllowanceRequest,
+): Promise<ApprovedTokens> {
+  const {
+    0: { result: balance },
+    1: { result: approved },
+  } = await readContracts({
     contracts: [
       {
         abi: erc20TokenABI,

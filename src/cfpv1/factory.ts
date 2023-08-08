@@ -1,57 +1,74 @@
 import { prepareWriteContract, readContract, getNetwork } from '@wagmi/core';
-import { crowdFinancingV1FactoryABI as abi, crowdFinancingV1FactoryAddress } from '../generated.js';
+import {
+  crowdFinancingV1FactoryABI as abi,
+  crowdFinancingV1FactoryAddress,
+} from '../generated.js';
 import { writePreparedAndFetchReceipt, getToFilteredLogs } from '../utils.js';
 import { TransactionReceipt, zeroAddress } from 'viem';
 import { config } from '../config/index.js';
 
 export type CampaignConfig = {
   /** Where raised funds are transfered */
-  recipientAddress: `0x${string}`,
+  recipientAddress: `0x${string}`;
   /** The minimum number of tokens required for success */
-  minGoal: bigint,
+  minGoal: bigint;
   /** The max number of tokens accepted (hard cap) */
-  maxGoal: bigint,
+  maxGoal: bigint;
   /** The minimum amount an individual account can contribute */
-  minContribution: bigint,
+  minContribution: bigint;
   /** The maximum amount an individual account can contribute */
-  maxContribution: bigint,
+  maxContribution: bigint;
   /** The number of seconds to wait before starting the campaign */
-  holdOffSeconds: number,
+  holdOffSeconds: number;
   /** The number of seconds to run the campaign for */
-  durationSeconds: number,
+  durationSeconds: number;
   /** The address of the ERC-20 token to use for the campaign (0x0 for native token) */
-  erc20TokenAddress?: `0x${string}`,
+  erc20TokenAddress?: `0x${string}`;
   /** The address of the factory to use for the campaign */
-  factoryAddress?: `0x${string}`,
-}
+  factoryAddress?: `0x${string}`;
+};
 
 export type CampaignDeployment = {
   /** The address of the deployed campaign */
-  campaignAddress: `0x${string}`,
+  campaignAddress: `0x${string}`;
   /** The transaction receipt for the deployment */
-  receipt: TransactionReceipt,
-}
+  receipt: TransactionReceipt;
+};
 
 export type FeeSchedule = {
   /** The address of the fee collector (0x0 if disabled) */
-  collectorAddress: `0x${string}`,
+  collectorAddress: `0x${string}`;
   /** The fee in basis points to charge for transfers */
-  transferFeeBips: number,
+  transferFeeBips: number;
   /** The fee in basis points to charge for yield */
-  yieldFeeBips: number,
+  yieldFeeBips: number;
   /** The fee in wei to charge for deployments */
-  deployFeeWei: bigint,
+  deployFeeWei: bigint;
+};
+
+function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
+  return getToFilteredLogs(receipt, abi).find(
+    (log) => log.eventName === 'Deployment',
+  )?.args?.deployment;
 }
 
-function extractDeploymentAddress(receipt : TransactionReceipt) : `0x${string}` {
-  return getToFilteredLogs(receipt, abi).find((log) => log.eventName === 'Deployment')?.args?.deployment;
-}
-
-function contractAddress() : `0x${string}` {
+/// @dev The factory address is configurable per network, and common networks have pre-defined values
+/// @see wagmi.config.ts
+function contractAddress(): `0x${string}` {
   const chainId = getNetwork().chain?.id;
-  return config?.crowdFiFactoryOverrides?.[chainId as keyof typeof config.crowdFiFactoryOverrides] || crowdFinancingV1FactoryAddress[
+  return factoryAddresses()[
     chainId as keyof typeof crowdFinancingV1FactoryAddress
   ];
+}
+
+/**
+ * @returns The factory addresses as a map from chain id to address
+ */
+export function factoryAddresses(): { [key: number]: `0x${string}` } {
+  return {
+    ...crowdFinancingV1FactoryAddress,
+    ...(config?.cfpv1?.factories || {}),
+  };
 }
 
 /**
@@ -60,12 +77,15 @@ function contractAddress() : `0x${string}` {
  * @returns The fee schedule for the factory
  * @throws If the fee schedule cannot be fetched
  */
-export async function fetchFeeSchedule(factoryAddress?: `0x${string}`) : Promise<FeeSchedule> {
-  const [collectorAddress, transferFeeBips, yieldFeeBips, deployFeeWei] = await readContract({
-    address: factoryAddress || contractAddress(),
-    abi,
-    functionName: 'feeSchedule',
-  });
+export async function fetchFeeSchedule(
+  factoryAddress?: `0x${string}`,
+): Promise<FeeSchedule> {
+  const [collectorAddress, transferFeeBips, yieldFeeBips, deployFeeWei] =
+    await readContract({
+      address: factoryAddress || contractAddress(),
+      abi,
+      functionName: 'feeSchedule',
+    });
 
   return {
     collectorAddress,
@@ -97,7 +117,9 @@ export async function fetchFeeSchedule(factoryAddress?: `0x${string}`) : Promise
  * const { receipt, campaignAddress } = await preparedTxn();
  * ```
  */
-export async function prepareCampaignDeployment(config: CampaignConfig) : Promise<() => Promise<CampaignDeployment>> {
+export async function prepareCampaignDeployment(
+  config: CampaignConfig,
+): Promise<() => Promise<CampaignDeployment>> {
   const { deployFeeWei } = await fetchFeeSchedule(config.factoryAddress);
 
   const txn = await prepareWriteContract({
