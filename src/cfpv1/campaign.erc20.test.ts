@@ -1,7 +1,10 @@
 import { expect, beforeEach, test, TestContext } from 'vitest';
 import { connect } from '@wagmi/core';
 import { TransactionReceipt } from 'viem';
-import { setupMockConfig, deployCrowdFinancingContracts } from '../_test/utils.js';
+import {
+  setupMockConfig,
+  deployCrowdFinancingContracts,
+} from '../_test/utils.js';
 import { prepareCampaignDeployment, CampaignConfig } from './factory.js';
 import {
   prepareCampaignContribution,
@@ -12,18 +15,29 @@ import {
   DepositRequest,
   CampaignRequest,
 } from './campaign.js';
-import { fetchTokenAllowance, prepareTokenApproval, ApprovalRequest, ApprovedTokens } from '../erc20/index.js';
+import {
+  fetchTokenAllowance,
+  prepareTokenApproval,
+  ApprovalRequest,
+  ApprovedTokens,
+} from '../erc20/index.js';
 
 type TCampaignTestContext = TestContext & {
-  campaignAddress: `0x${string}`,
-  erc20TokenAddress: `0x${string}`,
-}
+  campaignAddress: `0x${string}`;
+  erc20TokenAddress: `0x${string}`;
+};
 
 const MAX_GOAL = 125n;
 
 const helpers = {
-  async approve({ address, spender, amount }: ApprovalRequest): Promise<ApprovedTokens> {
-    const { status: approvalStatus } = await (await prepareTokenApproval({ address, spender, amount }))();
+  async approve({
+    address,
+    spender,
+    amount,
+  }: ApprovalRequest): Promise<ApprovedTokens> {
+    const { status: approvalStatus } = await (
+      await prepareTokenApproval({ address, spender, amount })
+    )();
     expect(approvalStatus).toEqual('success');
 
     return await fetchTokenAllowance({
@@ -33,20 +47,26 @@ const helpers = {
     });
   },
   async contribute(config: DepositRequest): Promise<TransactionReceipt> {
-    return await (await prepareCampaignContribution({
-      campaignAddress: config.campaignAddress,
-      amount: config.amount,
-      erc20: config.erc20,
-    }))();
+    return await (
+      await prepareCampaignContribution({
+        campaignAddress: config.campaignAddress,
+        amount: config.amount,
+        erc20: config.erc20,
+      })
+    )();
   },
-  async transfer(config: CampaignRequest & { erc20?: boolean }): Promise<TransactionReceipt> {
+  async transfer(
+    config: CampaignRequest & { erc20?: boolean },
+  ): Promise<TransactionReceipt> {
     const contribution = await this.contribute({
       campaignAddress: config.campaignAddress,
       amount: MAX_GOAL,
       erc20: config.erc20,
     });
     expect(contribution.status).toEqual('success');
-    return await (await prepareCampaignFundsTransfer(config))();
+    return await (
+      await prepareCampaignFundsTransfer(config)
+    )();
   },
   async depositYield(config: DepositRequest): Promise<TransactionReceipt> {
     const transfer = await this.transfer({
@@ -54,16 +74,23 @@ const helpers = {
       erc20: config.erc20,
     });
     expect(transfer.status).toEqual('success');
-    return await (await prepareCampaignYield(config))();
+    return await (
+      await prepareCampaignYield(config)
+    )();
   },
-  async withdrawYield(amount: bigint, config: CampaignRequest & { erc20?: boolean }): Promise<TransactionReceipt> {
+  async withdrawYield(
+    amount: bigint,
+    config: CampaignRequest & { erc20?: boolean },
+  ): Promise<TransactionReceipt> {
     const deposit = await this.depositYield({
       campaignAddress: config.campaignAddress,
       amount: amount,
       erc20: config.erc20,
     });
     expect(deposit.status).toEqual('success');
-    return await (await prepareCampaignWithdraw(config))();
+    return await (
+      await prepareCampaignWithdraw(config)
+    )();
   },
 };
 
@@ -72,8 +99,9 @@ beforeEach(async (context: TCampaignTestContext) => {
   await connect({
     connector: wagmiConfig.connectors[0],
   });
-  const { factoryAddress, tokenAddress: erc20TokenAddress } = await deployCrowdFinancingContracts();
-  const config : CampaignConfig = {
+  const { factoryAddress, tokenAddress: erc20TokenAddress } =
+    await deployCrowdFinancingContracts();
+  const config: CampaignConfig = {
     recipientAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
     minGoal: 100n,
     maxGoal: MAX_GOAL,
@@ -89,7 +117,10 @@ beforeEach(async (context: TCampaignTestContext) => {
   context.erc20TokenAddress = erc20TokenAddress;
 });
 
-test('[ERC-20] contributes to a campaign', async ({ campaignAddress, erc20TokenAddress }: TCampaignTestContext) => {
+test('[ERC-20] contributes to a campaign', async ({
+  campaignAddress,
+  erc20TokenAddress,
+}: TCampaignTestContext) => {
   const contribution = 10n;
   const allowance = await helpers.approve({
     address: erc20TokenAddress,
@@ -110,11 +141,13 @@ test('[ERC-20] contributes to a campaign', async ({ campaignAddress, erc20TokenA
     account: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
   });
 
-
   expect(contributionTokenBalance).toEqual(contribution);
 });
 
-test('[ERC-20] yields funds to a campaign', async ({ campaignAddress, erc20TokenAddress }: TCampaignTestContext) => {
+test('[ERC-20] yields funds to a campaign', async ({
+  campaignAddress,
+  erc20TokenAddress,
+}: TCampaignTestContext) => {
   const contribution = MAX_GOAL;
   const yieldAmount = 99n;
   const totalApproval = contribution + yieldAmount;

@@ -2,6 +2,10 @@
 
 SDK monorepo for Fabric EVM protocols.
 
+[![npm (tag)](https://img.shields.io/npm/v/@withfabric/protocol-sdks)](https://www.npmjs.com/package/@withfabric/protocol-sdks)
+[![CI Tests](https://github.com/withfabricxyz/protocol-sdks/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/withfabricxyz/protocol-sdks/actions/workflows/test.yml)
+![npm bundle size (version)](https://img.shields.io/bundlephobia/minzip/@withfabric/protocol-sdks)
+
 ### Peer Dependencies
 
 * viem
@@ -21,9 +25,15 @@ npm i viem @wagmi/core @withfabric/protocol-sdks
 
 The Fabric CrowdFi protocol moves capital between creators and communities.
 
-* [High Level Docs](https://docs.withfabric.xyz/crowdfi/overview)
+* [Documentation](https://docs.withfabric.xyz/crowdfi/overview)
 * [Code](src/cfpv1)
 
+#### STPv1 - Subscription Token Protocol
+
+The Fabric Subscription Token Protocol provides onchain recurring revenue for creators and businesses.
+
+* [Documentation](https://docs.withfabric.xyz/stp/overview)
+* [Code](src/stpv1)
 
 ### Contributing / Running
 
