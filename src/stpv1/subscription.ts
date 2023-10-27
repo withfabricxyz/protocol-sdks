@@ -15,6 +15,8 @@ import { prepareHoldingsMulticall } from '../erc20/index.js';
 export type CollectionRequest = {
   /** The contract address of the campaign */
   contractAddress: `0x${string}`;
+  /** Optional chain id (otherwise the connected chain) */
+  chainId?: number;
 };
 
 export type OwnershipTransferRequest = CollectionRequest & {
@@ -143,21 +145,25 @@ export type FullState = {
 
 async function fetchERC20Address({
   contractAddress,
+  chainId,
 }: CollectionRequest): Promise<`0x${string}`> {
   return readContract({
     abi,
     address: contractAddress,
     functionName: 'erc20Address',
+    chainId,
   });
 }
 
 function prepareStateMulticall(
   address: `0x${string}`,
   state: Partial<CollectionState>,
+  chainId?: number,
 ): TMappingMulticall<CollectionState>[] {
   const contract = {
     address,
     abi,
+    chainId,
   };
 
   state.address = address;
@@ -251,10 +257,12 @@ function prepareSubscriberStateMulticall(
   address: `0x${string}`,
   account: `0x${string}`,
   state: Partial<SubscriberState>,
+  chainId?: number,
 ): TMappingMulticall<SubscriberState>[] {
   const contract = {
     address,
     abi,
+    chainId,
   };
 
   state.address = account;
@@ -296,9 +304,10 @@ function prepareSubscriberStateMulticall(
  */
 export async function fetchCollectionState({
   contractAddress,
+  chainId,
 }: CollectionRequest): Promise<CollectionState> {
   const state: Partial<CollectionState> = {};
-  await mapMulticall(prepareStateMulticall(contractAddress, state));
+  await mapMulticall(prepareStateMulticall(contractAddress, state, chainId));
   return state as CollectionState;
 }
 
@@ -310,10 +319,11 @@ export async function fetchCollectionState({
 export async function fetchSubscriberState({
   contractAddress,
   account,
+  chainId,
 }: SubscriberRequest): Promise<SubscriberState> {
   const state: Partial<SubscriberState> = {};
   await mapMulticall(
-    prepareSubscriberStateMulticall(contractAddress, account, state),
+    prepareSubscriberStateMulticall(contractAddress, account, state, chainId),
   );
   return state as SubscriberState;
 }
@@ -327,12 +337,18 @@ export async function fetchSubscriberState({
 export async function fetchContext({
   contractAddress,
   account,
+  chainId,
 }: SubscriberRequest): Promise<FullState> {
   const contractState: Partial<CollectionState> = {};
   const holderState: Partial<SubscriberState> = {};
   await mapMulticall([
-    ...prepareSubscriberStateMulticall(contractAddress, account, holderState),
-    ...prepareStateMulticall(contractAddress, contractState),
+    ...prepareSubscriberStateMulticall(
+      contractAddress,
+      account,
+      holderState,
+      chainId,
+    ),
+    ...prepareStateMulticall(contractAddress, contractState, chainId),
   ]);
 
   const holdings: Partial<ApprovedTokens> = {};
@@ -346,6 +362,7 @@ export async function fetchContext({
         contractState.erc20Address,
         account,
         holdings,
+        chainId,
       ),
     );
   } else {
@@ -380,6 +397,7 @@ export async function prepareCreateReferralCode(
     address: request.contractAddress,
     functionName: 'createReferralCode',
     args: [request.referralCode, request.bps],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -397,6 +415,7 @@ export async function prepareDeleteReferralCode(
     address: request.contractAddress,
     functionName: 'deleteReferralCode',
     args: [request.referralCode],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -414,6 +433,7 @@ export async function prepareGrantTime(
     address: request.contractAddress,
     functionName: 'grantTime',
     args: [request.accounts, request.numSeconds],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -434,6 +454,7 @@ export async function prepareMint(
     functionName: 'mint',
     args: [request.amount],
     value: isERC20 ? 0n : request.amount,
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -454,6 +475,7 @@ export async function prepareMintWithReferral(
     functionName: 'mintWithReferral',
     args: [request.amount, request.referralCode, request.referrer],
     value: isERC20 ? 0n : request.amount,
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -474,6 +496,7 @@ export async function prepareMintFor(
     functionName: 'mintFor',
     args: [request.account, request.amount],
     value: isERC20 ? 0n : request.amount,
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -499,6 +522,7 @@ export async function prepareMintWithReferralFor(
       request.referrer,
     ],
     value: isERC20 ? 0n : request.amount,
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -515,6 +539,7 @@ export async function prepareWithdraw(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'withdraw',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -531,6 +556,7 @@ export async function prepareWithdrawAndTransferFees(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'withdrawAndTransferFees',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -548,6 +574,7 @@ export async function prepareWithdrawTo(
     address: request.contractAddress,
     functionName: 'withdrawTo',
     args: [request.account],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -564,6 +591,7 @@ export async function preparePause(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'pause',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -580,6 +608,7 @@ export async function prepareUnpause(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'unpause',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -597,6 +626,7 @@ export async function prepareUpdateMetadata(
     address: request.contractAddress,
     functionName: 'updateMetadata',
     args: [request.contractUri, request.tokenUri],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -618,6 +648,7 @@ export async function prepareRefund(
     functionName: 'refund',
     args: [request.credit || 0n, request.accounts],
     value: isERC20 ? 0n : request.credit || 0n,
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -635,6 +666,7 @@ export async function prepareTransferOwnership(
     address: request.contractAddress,
     functionName: 'transferOwnership',
     args: [request.newOwner],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -652,6 +684,7 @@ export async function prepareSetSupplyCap(
     address: request.contractAddress,
     functionName: 'setSupplyCap',
     args: [request.supplyCap],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -670,6 +703,7 @@ export async function prepareSetTransferRecipient(
     address: request.contractAddress,
     functionName: 'setTransferRecipient',
     args: [request.recipient],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -686,6 +720,7 @@ export async function prepareTransferAllBalances(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'transferAllBalances',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -704,6 +739,7 @@ export async function prepareSlashRewards(
     address: request.contractAddress,
     functionName: 'slashRewards',
     args: [request.account],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -720,6 +756,7 @@ export async function prepareWithdrawRewards(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'withdrawRewards',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -736,6 +773,7 @@ export async function prepareAcceptOwnership(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'acceptOwnership',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -752,6 +790,7 @@ export async function prepareReconcileERC20Balance(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'reconcileERC20Balance',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -769,6 +808,7 @@ export async function prepareRecoverERC20(
     address: request.contractAddress,
     functionName: 'recoverERC20',
     args: [request.erc20Address, request.recipient, request.amount],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -785,6 +825,7 @@ export async function prepareReconcileNativeBalance(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'reconcileNativeBalance',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -802,6 +843,7 @@ export async function prepareRecoverNativeTokens(
     address: request.contractAddress,
     functionName: 'recoverNativeTokens',
     args: [request.recipient],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
