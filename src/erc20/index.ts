@@ -11,6 +11,8 @@ export type ApprovalRequest = {
   spender: `0x${string}`;
   /** The amount of ERC-20 tokens to approve */
   amount: bigint;
+  /** Optional chain id (or connected chain) */
+  chainId?: number;
 };
 
 export type AllowanceRequest = Omit<ApprovalRequest, 'amount'> & {
@@ -29,10 +31,12 @@ export function prepareHoldingsMulticall(
   erc20Address: `0x${string}`,
   account: `0x${string}`,
   state: Partial<ApprovedTokens>,
+  chainId?: number,
 ): TMappingMulticall<ApprovedTokens>[] {
   const contract = {
     address: erc20Address,
     abi: erc20TokenABI,
+    chainId,
   };
 
   return [
@@ -71,6 +75,7 @@ export async function prepareTokenApproval(
     address: request.address,
     functionName: 'approve',
     args: [request.spender, request.amount],
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -94,12 +99,14 @@ export async function fetchTokenAllowance(
         address: request.address,
         functionName: 'balanceOf',
         args: [request.owner],
+        chainId: request.chainId,
       },
       {
         abi: erc20TokenABI,
         address: request.address,
         functionName: 'allowance',
         args: [request.owner, request.spender],
+        chainId: request.chainId,
       },
     ],
   });

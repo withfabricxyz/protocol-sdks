@@ -14,6 +14,8 @@ import { prepareHoldingsMulticall, ApprovedTokens } from '../erc20/index.js';
 export type CampaignRequest = {
   /** The contract address of the campaign */
   campaignAddress: `0x${string}`;
+  /** Optional chain id (otherwise the connected chain) */
+  chainId?: number;
 };
 
 export type CampaignAccountRequest = CampaignRequest & {
@@ -106,10 +108,12 @@ async function fetchCampaignERC20Address({
 function prepareStateMulticall(
   address: `0x${string}`,
   state: Partial<CampaignState>,
+  chainId?: number,
 ): TMappingMulticall<CampaignState>[] {
   const contract = {
     address,
     abi: crowdFinancingV1ABI,
+    chainId,
   };
 
   state.address = address;
@@ -226,10 +230,12 @@ function prepareAccountStateMulticall(
   campaignAddress: `0x${string}`,
   account: `0x${string}`,
   state: Partial<AccountState>,
+  chainId?: number,
 ): TMappingMulticall<AccountState>[] {
   const contract = {
     address: campaignAddress,
     abi: crowdFinancingV1ABI,
+    chainId,
   };
 
   state.address = account;
@@ -268,9 +274,10 @@ function prepareAccountStateMulticall(
  */
 export async function fetchCampaignState({
   campaignAddress,
+  chainId,
 }: CampaignRequest): Promise<CampaignState> {
   const state: Partial<CampaignState> = {};
-  await mapMulticall(prepareStateMulticall(campaignAddress, state));
+  await mapMulticall(prepareStateMulticall(campaignAddress, state, chainId));
   return state as CampaignState;
 }
 
@@ -283,10 +290,11 @@ export async function fetchCampaignState({
 export async function fetchCampaignAccountState({
   campaignAddress,
   account,
+  chainId,
 }: CampaignAccountRequest): Promise<AccountState> {
   const state: Partial<AccountState> = {};
   await mapMulticall(
-    prepareAccountStateMulticall(campaignAddress, account, state),
+    prepareAccountStateMulticall(campaignAddress, account, state, chainId),
   );
   return state as AccountState;
 }
@@ -300,12 +308,18 @@ export async function fetchCampaignAccountState({
 export async function fetchFullState({
   campaignAddress,
   account,
+  chainId,
 }: CampaignAccountRequest): Promise<FullState> {
   const campaignState: Partial<CampaignState> = {};
   const accountState: Partial<AccountState> = {};
   await mapMulticall([
-    ...prepareAccountStateMulticall(campaignAddress, account, accountState),
-    ...prepareStateMulticall(campaignAddress, campaignState),
+    ...prepareAccountStateMulticall(
+      campaignAddress,
+      account,
+      accountState,
+      chainId,
+    ),
+    ...prepareStateMulticall(campaignAddress, campaignState, chainId),
   ]);
 
   const holdings: Partial<ApprovedTokens> = {};
@@ -319,6 +333,7 @@ export async function fetchFullState({
         campaignState.erc20Address,
         account,
         holdings,
+        chainId,
       ),
     );
   } else {
@@ -351,11 +366,13 @@ export async function prepareCampaignContribution(
         address: request.campaignAddress,
         functionName: 'contributeERC20',
         args: [request.amount],
+        chainId: request.chainId,
       })
     : await prepareWriteCrowdFinancingV1({
         address: request.campaignAddress,
         functionName: 'contributeEth',
         value: request.amount,
+        chainId: request.chainId,
       });
 
   return async () => writePreparedAndFetchReceipt(txn);
@@ -373,6 +390,7 @@ export async function prepareCampaignFundsTransfer(
   const txn = await prepareWriteCrowdFinancingV1({
     address: request.campaignAddress,
     functionName: 'transferBalanceToRecipient',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }
@@ -394,11 +412,13 @@ export async function prepareCampaignYield(
         address: request.campaignAddress,
         functionName: 'yieldERC20',
         args: [request.amount],
+        chainId: request.chainId,
       })
     : await prepareWriteCrowdFinancingV1({
         address: request.campaignAddress,
         functionName: 'yieldEth',
         value: request.amount,
+        chainId: request.chainId,
       });
 
   return async () => writePreparedAndFetchReceipt(txn);
@@ -416,6 +436,7 @@ export async function prepareCampaignWithdraw(
   const txn = await prepareWriteCrowdFinancingV1({
     address: request.campaignAddress,
     functionName: 'withdraw',
+    chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
 }

@@ -26,6 +26,8 @@ export type CollectionConfig = {
   erc20TokenAddress?: `0x${string}`;
   /** The fee ID to use for the referral deployments (0 for default) */
   feeId?: bigint;
+  /** The chain id (optional, or use connected chain) */
+  chainId?: number;
 };
 
 export type Deployment = {
@@ -79,12 +81,14 @@ export function factoryAddresses(): { [key: number]: `0x${string}` } {
 export async function fetchFeeSchedule(
   factoryAddress?: `0x${string}`,
   feeId?: bigint,
+  chainId?: number,
 ): Promise<FeeSchedule> {
   const [collectorAddress, feeBips, deployFeeWei] = await readContract({
     address: factoryAddress || contractAddress(),
     abi,
     functionName: 'feeInfo',
     args: [feeId || 0n],
+    chainId,
   });
 
   return {
@@ -104,7 +108,11 @@ export async function prepareDeployment(
   config: CollectionConfig,
 ): Promise<() => Promise<Deployment>> {
   const addr = contractAddress();
-  const { deployFeeWei } = await fetchFeeSchedule(addr);
+  const { deployFeeWei } = await fetchFeeSchedule(
+    addr,
+    config.feeId,
+    config.chainId,
+  );
 
   const txn = await prepareWriteContract({
     address: contractAddress(),
@@ -122,6 +130,7 @@ export async function prepareDeployment(
       config.feeId || 0n,
     ],
     value: deployFeeWei,
+    chainId: config.chainId,
   });
 
   return async () => {

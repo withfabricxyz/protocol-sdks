@@ -26,6 +26,8 @@ export type CampaignConfig = {
   erc20TokenAddress?: `0x${string}`;
   /** The address of the factory to use for the campaign */
   factoryAddress?: `0x${string}`;
+  /** The chain id (optional, or use connected chain) */
+  chainId?: number;
 };
 
 export type CampaignDeployment = {
@@ -79,12 +81,14 @@ export function factoryAddresses(): { [key: number]: `0x${string}` } {
  */
 export async function fetchFeeSchedule(
   factoryAddress?: `0x${string}`,
+  chainId?: number,
 ): Promise<FeeSchedule> {
   const [collectorAddress, transferFeeBips, yieldFeeBips, deployFeeWei] =
     await readContract({
       address: factoryAddress || contractAddress(),
       abi,
       functionName: 'feeSchedule',
+      chainId,
     });
 
   return {
@@ -120,7 +124,10 @@ export async function fetchFeeSchedule(
 export async function prepareCampaignDeployment(
   config: CampaignConfig,
 ): Promise<() => Promise<CampaignDeployment>> {
-  const { deployFeeWei } = await fetchFeeSchedule(config.factoryAddress);
+  const { deployFeeWei } = await fetchFeeSchedule(
+    config.factoryAddress,
+    config.chainId,
+  );
 
   const txn = await prepareWriteContract({
     address: config.factoryAddress || contractAddress(),
@@ -137,6 +144,7 @@ export async function prepareCampaignDeployment(
       config.erc20TokenAddress || zeroAddress,
     ],
     value: deployFeeWei,
+    chainId: config.chainId,
   });
 
   return async () => {
