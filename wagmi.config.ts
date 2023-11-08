@@ -28,12 +28,15 @@ export default defineConfig({
           5: '0x7A5433eD0f561D7c98Fe7133F584923d9552B0E1',
           11155111: '0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323',
           17000: '0xD0884D249B74B7E6C433bB4130a9d3FCa309170E',
+          8453: '0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180',
+          10: '0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A',
         },
       },
     }),
     actions({
       prepareWriteContract: true,
       readContract: false,
+      watchContractEvent: false,
     }),
   ],
 });

@@ -1,31 +1,12 @@
 import { localHttpUrl } from './constants.js';
-
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { Chain, localhost } from '@wagmi/chains';
+import { Chain, localhost } from '@wagmi/core/chains';
 import { WalletClient, configureChains, createConfig } from '@wagmi/core';
-import {
-  crowdFinancingV1FactoryABI,
-  crowdFinancingV1ABI,
-  erc20TokenABI,
-} from '../generated.js';
-import {
-  subscriptionTokenV1FactoryABI,
-  subscriptionTokenV1ABI,
-} from '../generated.js';
 import { MockConnector } from '@wagmi/core/connectors/mock';
 import { publicProvider } from '@wagmi/core/providers/public';
-import { pollReceipt } from '../utils.js';
-
-import {
-  CrowdFinancingV1Bytecode,
-  CrowdFinancingV1FactoryBytecode,
-  ERC20TokenBytecode,
-} from '../bytecode.js';
-import {
-  SubscriptionTokenV1Bytecode,
-  SubscriptionTokenV1FactoryBytecode,
-} from '../bytecode.js';
+import { deploySTPLogic, deploySTPFactory, deployToken } from '../deploy.js';
+import { deployCFPFactory, deployCFPLogic } from '../deploy.js';
 
 export const anvilChain = {
   ...localhost,
@@ -58,42 +39,19 @@ export async function deployCrowdFinancingContracts(): Promise<{
   tokenAddress: `0x${string}`;
 }> {
   const walletClient = buildWalletClient();
-  const tokenHash = await walletClient.deployContract({
-    abi: erc20TokenABI,
-    bytecode: ERC20TokenBytecode,
-    args: ['Test Token', 'TEST', 1000000000000000000000000000n],
-  });
-  const { contractAddress: tokenAddress, status: tokenStatus } =
-    await pollReceipt(tokenHash);
-
-  const logicHash = await walletClient.deployContract({
-    abi: crowdFinancingV1ABI,
-    bytecode: CrowdFinancingV1Bytecode,
-  });
-
-  const { contractAddress: logicAddress, status: logicStatus } =
-    await pollReceipt(logicHash);
-  const factoryHash = await walletClient.deployContract({
-    abi: crowdFinancingV1FactoryABI,
-    bytecode: CrowdFinancingV1FactoryBytecode,
-    args: [logicAddress!],
-  });
-
-  const { contractAddress: factoryAddress, status: factoryStatus } =
-    await pollReceipt(factoryHash);
-
-  if (
-    [tokenStatus, logicStatus, factoryStatus].some(
-      (status: string) => status !== 'success',
-    )
-  ) {
-    throw new Error('Failed to deploy contracts');
-  }
+  const tokenAddress = await deployToken(
+    walletClient,
+    'Test Token',
+    'TEST',
+    1000000000000000000000000000n,
+  );
+  const logicAddress = await deployCFPLogic(walletClient);
+  const factoryAddress = await deployCFPFactory(walletClient, logicAddress);
 
   return {
-    logicAddress: logicAddress!,
-    factoryAddress: factoryAddress!,
-    tokenAddress: tokenAddress!,
+    logicAddress,
+    factoryAddress,
+    tokenAddress,
   };
 }
 
@@ -103,42 +61,19 @@ export async function deploySubscriptionNFTContracts(): Promise<{
   tokenAddress: `0x${string}`;
 }> {
   const walletClient = buildWalletClient();
-  const tokenHash = await walletClient.deployContract({
-    abi: erc20TokenABI,
-    bytecode: ERC20TokenBytecode,
-    args: ['Test Token', 'TEST', 1000000000000000000000000000n],
-  });
-  const { contractAddress: tokenAddress, status: tokenStatus } =
-    await pollReceipt(tokenHash);
-
-  const logicHash = await walletClient.deployContract({
-    abi: subscriptionTokenV1ABI,
-    bytecode: SubscriptionTokenV1Bytecode,
-  });
-
-  const { contractAddress: logicAddress, status: logicStatus } =
-    await pollReceipt(logicHash);
-  const factoryHash = await walletClient.deployContract({
-    abi: subscriptionTokenV1FactoryABI,
-    bytecode: SubscriptionTokenV1FactoryBytecode,
-    args: [logicAddress!],
-  });
-
-  const { contractAddress: factoryAddress, status: factoryStatus } =
-    await pollReceipt(factoryHash);
-
-  if (
-    [tokenStatus, logicStatus, factoryStatus].some(
-      (status: string) => status !== 'success',
-    )
-  ) {
-    throw new Error('Failed to deploy contracts');
-  }
+  const tokenAddress = await deployToken(
+    walletClient,
+    'Test Token',
+    'TEST',
+    1000000000000000000000000000n,
+  );
+  const logicAddress = await deploySTPLogic(walletClient);
+  const factoryAddress = await deploySTPFactory(walletClient, logicAddress);
 
   return {
-    logicAddress: logicAddress!,
-    factoryAddress: factoryAddress!,
-    tokenAddress: tokenAddress!,
+    logicAddress,
+    factoryAddress,
+    tokenAddress,
   };
 }
 
