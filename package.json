@@ -1,6 +1,6 @@
 {
   "name": "@withfabric/protocol-sdks",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SDKs for Fabric EVM Protocols",
   "author": "Fabric Inc.",
   "license": "ISC",
@@ -50,6 +50,11 @@
       "types": "./dist/types/cfpv1/index.d.ts",
       "import": "./dist/esm/cfpv1/index.js",
       "default": "./dist/cjs/cfpv1/index.js"
+    },
+    "./deploy": {
+      "types": "./dist/types/deploy.d.ts",
+      "import": "./dist/esm/deploy.js",
+      "default": "./dist/cjs/deploy.js"
     },
     "./package.json": "./package.json"
   },
