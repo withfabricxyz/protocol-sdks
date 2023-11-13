@@ -52,3 +52,26 @@ test('deploys a campaign', async () => {
   expect(state.feeBips).toEqual(0);
   expect(state.feeCollectorAddress).toEqual(zeroAddress);
 });
+
+test('deploy on unsupported chain', async () => {
+  const wagmiConfig = setupMockConfig();
+  await connect({
+    connector: wagmiConfig.connectors[0],
+  });
+
+  const config: CollectionConfig = {
+    name: 'Test',
+    symbol: 'TEST',
+    contractURI: 'https://example.com/contract',
+    tokenURI: 'https://example.com/token',
+    tokensPerSecond: 1n,
+    minPurchaseSeconds: 60n,
+    chainId: 98712398,
+  };
+
+  try {
+    await prepareDeployment(config);
+  } catch (e: unknown) {
+    expect(e || '').toMatch(/STP Factory not defined for chain/);
+  }
+});
