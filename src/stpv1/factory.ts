@@ -55,11 +55,20 @@ function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
 
 /// @dev The factory address is configurable per network, and common networks have pre-defined values
 /// @see wagmi.config.ts
-function contractAddress(): `0x${string}` {
-  const chainId = getNetwork().chain?.id;
-  return factoryAddresses()[
-    chainId as keyof typeof subscriptionTokenV1FactoryAddress
-  ];
+function contractAddress(targetChainId?: number): `0x${string}` {
+  const chainId = targetChainId || getNetwork().chain?.id;
+  const address =
+    factoryAddresses()[
+      chainId as keyof typeof subscriptionTokenV1FactoryAddress
+    ];
+
+  if (!address) {
+    throw new Error(
+      `STP Factory not defined for chain id: ${chainId}. Ensure you are connected to or using the correct network.`,
+    );
+  }
+
+  return address;
 }
 
 /**
@@ -78,13 +87,17 @@ export function factoryAddresses(): { [key: number]: `0x${string}` } {
  * @returns The fee schedule for the factory
  * @throws If the fee schedule cannot be fetched
  */
-export async function fetchFeeSchedule(
-  factoryAddress?: `0x${string}`,
-  feeId?: bigint,
-  chainId?: number,
-): Promise<FeeSchedule> {
+export async function fetchFeeSchedule({
+  factoryAddress,
+  feeId,
+  chainId,
+}: {
+  factoryAddress?: `0x${string}`;
+  feeId?: bigint;
+  chainId?: number;
+}): Promise<FeeSchedule> {
   const [collectorAddress, feeBips, deployFeeWei] = await readContract({
-    address: factoryAddress || contractAddress(),
+    address: factoryAddress || contractAddress(chainId),
     abi,
     functionName: 'feeInfo',
     args: [feeId || 0n],
@@ -107,15 +120,15 @@ export async function fetchFeeSchedule(
 export async function prepareDeployment(
   config: CollectionConfig,
 ): Promise<() => Promise<Deployment>> {
-  const addr = contractAddress();
-  const { deployFeeWei } = await fetchFeeSchedule(
-    addr,
-    config.feeId,
-    config.chainId,
-  );
+  const address = contractAddress(config.chainId);
+  const { deployFeeWei } = await fetchFeeSchedule({
+    factoryAddress: address,
+    feeId: config.feeId,
+    chainId: config.chainId,
+  });
 
   const txn = await prepareWriteContract({
-    address: contractAddress(),
+    address,
     abi,
     functionName: 'deploySubscription',
     args: [
