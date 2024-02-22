@@ -1857,6 +1857,7 @@ export const subscriptionTokenV1ABI = [
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export const subscriptionTokenV1FactoryABI = [
@@ -2088,6 +2089,7 @@ export const subscriptionTokenV1FactoryABI = [
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export const subscriptionTokenV1FactoryAddress = {
@@ -2096,6 +2098,7 @@ export const subscriptionTokenV1FactoryAddress = {
   10: '0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A',
   8453: '0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180',
   17000: '0xD0884D249B74B7E6C433bB4130a9d3FCa309170E',
+  7777777: '0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180',
   11155111: '0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323',
 } as const
 
@@ -2105,6 +2108,7 @@ export const subscriptionTokenV1FactoryAddress = {
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export const subscriptionTokenV1FactoryConfig = {
@@ -2361,6 +2365,7 @@ export function prepareWriteSubscriptionTokenV1<
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export function getSubscriptionTokenV1Factory(
@@ -2386,6 +2391,7 @@ export function getSubscriptionTokenV1Factory(
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export function writeSubscriptionTokenV1Factory<
@@ -2440,6 +2446,7 @@ export function writeSubscriptionTokenV1Factory<
  * - [__View Contract on Op Mainnet Optimism Explorer__](https://explorer.optimism.io/address/0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A)
  * - [__View Contract on Base Basescan__](https://basescan.org/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * -
+ * - [__View Contract on Zora Explorer__](https://explorer.zora.energy/address/0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180)
  * - [__View Contract on Sepolia Etherscan__](https://sepolia.etherscan.io/address/0xAAe8931adbF1DFC227B2f2eB619450c4fd5E3323)
  */
 export function prepareWriteSubscriptionTokenV1Factory<

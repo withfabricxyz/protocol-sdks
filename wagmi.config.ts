@@ -30,6 +30,7 @@ export default defineConfig({
           17000: '0xD0884D249B74B7E6C433bB4130a9d3FCa309170E',
           8453: '0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180',
           10: '0x4ABd5D3Af06Ce5356a455Eb5eCDC1f07Aa9C083A',
+          7777777: '0x3BeF7e58a3F357eC98b639df5c24DaC68Ee3A180',
         },
       },
     }),
