@@ -337,7 +337,7 @@ export async function fetchFullState({
       ),
     );
   } else {
-    holdings.balance = (await fetchBalance({ address: account })).value;
+    holdings.balance = (await fetchBalance({ address: account, chainId })).value;
   }
 
   return {
