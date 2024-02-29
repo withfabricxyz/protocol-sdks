@@ -366,7 +366,7 @@ export async function fetchContext({
       ),
     );
   } else {
-    holdings.balance = (await fetchBalance({ address: account })).value;
+    holdings.balance = (await fetchBalance({ address: account, chainId })).value;
     holdings.approved = holdings.balance;
   }
 
