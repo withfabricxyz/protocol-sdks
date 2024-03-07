@@ -1,6 +1,6 @@
 {
   "name": "@withfabric/protocol-sdks",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "SDKs for Fabric EVM Protocols",
   "author": "Fabric Inc.",
   "license": "ISC",
@@ -26,7 +26,7 @@
     "format": "prettier 'src/**/*.ts' --write"
   },
   "type": "module",
-  "main": "./dist/cjs/index.js",
+  "main": "./dist/esm/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
   "typings": "./dist/types/index.d.ts",
@@ -38,23 +38,19 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "default": "./dist/cjs/index.js"
+      "default": "./dist/esm/index.js"
     },
     "./stpv1": {
       "types": "./dist/types/stpv1/index.d.ts",
-      "import": "./dist/esm/stpv1/index.js",
-      "default": "./dist/cjs/stpv1/index.js"
+      "default": "./dist/esm/stpv1/index.js"
     },
     "./cfpv1": {
       "types": "./dist/types/cfpv1/index.d.ts",
-      "import": "./dist/esm/cfpv1/index.js",
-      "default": "./dist/cjs/cfpv1/index.js"
+      "default": "./dist/esm/cfpv1/index.js"
     },
     "./deploy": {
       "types": "./dist/types/deploy.d.ts",
-      "import": "./dist/esm/deploy.js",
-      "default": "./dist/cjs/deploy.js"
+      "default": "./dist/esm/deploy.js"
     },
     "./package.json": "./package.json"
   },
