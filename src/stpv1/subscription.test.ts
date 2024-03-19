@@ -1,12 +1,12 @@
 import { expect, beforeEach, test, TestContext, beforeAll } from 'vitest';
-import { connect, fetchBalance } from '@wagmi/core';
+import { getBalance } from '@wagmi/core';
 import { TransactionReceipt, parseEther } from 'viem';
 import { CollectionConfig, prepareDeployment } from './factory.js';
 import {
-  setupMockConfig,
   deploySubscriptionNFTContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
-import { configureFabricSDK } from '../config/index.js';
+import { configureFabricSDK, wagmiConfig } from '../config/index.js';
 
 import {
   PurchaseRequest,
@@ -52,10 +52,7 @@ const helpers = {
 };
 
 beforeAll(async () => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
   const { factoryAddress } = await deploySubscriptionNFTContracts();
   configureFabricSDK({
     stpv1: {
@@ -143,7 +140,7 @@ test('Withdraw', async ({ contractAddress }: TSubscriptionTestContext) => {
     amount: parseEther('1'),
   });
 
-  const { value: preValue } = await fetchBalance({
+  const { value: preValue } = await getBalance(wagmiConfig(), {
     address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
   });
 
@@ -153,7 +150,7 @@ test('Withdraw', async ({ contractAddress }: TSubscriptionTestContext) => {
     })
   )();
 
-  const { value: postValue } = await fetchBalance({
+  const { value: postValue } = await getBalance(wagmiConfig(), {
     address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
   });
 
@@ -168,7 +165,7 @@ test('Withdraw To', async ({ contractAddress }: TSubscriptionTestContext) => {
   });
 
   const account = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92265';
-  const { value: preValue } = await fetchBalance({
+  const { value: preValue } = await getBalance(wagmiConfig(), {
     address: account,
   });
 
@@ -179,7 +176,7 @@ test('Withdraw To', async ({ contractAddress }: TSubscriptionTestContext) => {
     })
   )();
 
-  const { value } = await fetchBalance({
+  const { value } = await getBalance(wagmiConfig(), {
     address: account,
   });
 

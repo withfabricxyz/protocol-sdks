@@ -24,5 +24,5 @@ export {
 
 export {
   crowdFinancingV1FactoryAddress as factories,
-  crowdFinancingV1FactoryABI as ABI,
+  crowdFinancingV1FactoryAbi as ABI,
 } from '../generated.js';

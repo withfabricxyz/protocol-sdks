@@ -53,5 +53,5 @@ export {
 
 export {
   subscriptionTokenV1FactoryAddress as factories,
-  subscriptionTokenV1FactoryABI as ABI,
+  subscriptionTokenV1FactoryAbi as ABI,
 } from '../generated.js';

@@ -1,13 +1,9 @@
 import { test, expect, beforeEach } from 'vitest';
 import { fetchReceipt } from './utils.js';
-import { setupMockConfig } from './_test/utils.js';
-import { connect } from '@wagmi/core';
+import { wagmiTestSetup } from './_test/utils.js';
 
 beforeEach(async () => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
 });
 
 test('not found', async () => {

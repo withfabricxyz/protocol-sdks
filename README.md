@@ -11,6 +11,14 @@ SDK monorepo for Fabric EVM protocols.
 * viem
 * wagmi-core
 
+##### Version Compatability
+
+| wagmi version | sdk version |
+| --- | --- |
+| 1.x.x            | 0.3.6    |
+| 2.x.y            | 1.0.0+   |
+
+
 If you don't use wagmi or wagmi-core, you can leverage the protocols directly; [see our docs](https://docs.withfabric.xyz).
 
 ### Installation
@@ -18,6 +26,25 @@ If you don't use wagmi or wagmi-core, you can leverage the protocols directly; [
 ```
 npm i viem @wagmi/core @withfabric/protocol-sdks
 ```
+
+#### Wagmi V2 Configuration
+
+Wagmi v2 changed how configuration is managed. As a result the SDK needs to be
+configured with the wagmi configuration.
+
+```ts
+import { createConfig } from '@wagmi/core';
+import { configureFabricSDK } from '@withfabric/protocol-sdks';
+
+// Create wagmi configuration
+const config = return createConfig({
+  // ...
+});
+
+// Configure the SDK to use your wagmi configuration
+configureFabricSDK({ wagmiConfig: config });
+```
+
 
 ### Protocols
 

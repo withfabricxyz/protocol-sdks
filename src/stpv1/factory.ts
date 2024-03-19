@@ -1,11 +1,11 @@
-import { prepareWriteContract, readContract, getNetwork } from '@wagmi/core';
+import { simulateContract, readContract, getChainId } from '@wagmi/core';
 import {
-  subscriptionTokenV1FactoryABI as abi,
+  subscriptionTokenV1FactoryAbi as abi,
   subscriptionTokenV1FactoryAddress,
 } from '../generated.js';
 import { writePreparedAndFetchReceipt, getToFilteredLogs } from '../utils.js';
 import { TransactionReceipt, zeroAddress } from 'viem';
-import { config } from '../config/index.js';
+import { config, wagmiConfig } from '../config/index.js';
 
 export type CollectionConfig = {
   /** The name of the NFT */
@@ -56,7 +56,7 @@ function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
 /// @dev The factory address is configurable per network, and common networks have pre-defined values
 /// @see wagmi.config.ts
 function contractAddress(targetChainId?: number): `0x${string}` {
-  const chainId = targetChainId || getNetwork().chain?.id;
+  const chainId = targetChainId || getChainId(wagmiConfig());
   const address =
     factoryAddresses()[
       chainId as keyof typeof subscriptionTokenV1FactoryAddress
@@ -96,7 +96,7 @@ export async function fetchFeeSchedule({
   feeId?: bigint;
   chainId?: number;
 }): Promise<FeeSchedule> {
-  const [collectorAddress, feeBips, deployFeeWei] = await readContract({
+  const [collectorAddress, feeBips, deployFeeWei] = await readContract(wagmiConfig(), {
     address: factoryAddress || contractAddress(chainId),
     abi,
     functionName: 'feeInfo',
@@ -127,7 +127,7 @@ export async function prepareDeployment(
     chainId: config.chainId,
   });
 
-  const txn = await prepareWriteContract({
+  const txn = await simulateContract(wagmiConfig(), {
     address,
     abi,
     functionName: 'deploySubscription',

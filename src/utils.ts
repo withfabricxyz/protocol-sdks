@@ -2,7 +2,7 @@ import {
   writeContract,
   getPublicClient,
   readContracts,
-  getNetwork,
+  getChainId,
 } from '@wagmi/core';
 
 import {
@@ -13,13 +13,15 @@ import {
   Abi,
 } from 'viem';
 
+import { wagmiConfig } from './config';
+
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function fetchReceipt(
   hash: `0x${string}`,
 ): Promise<TransactionReceipt | null> {
   try {
-    return await getPublicClient().getTransactionReceipt({ hash });
+    return await getPublicClient(wagmiConfig())!.getTransactionReceipt({ hash });
   } catch (err) {
     if (err instanceof TransactionReceiptNotFoundError) {
       return null;
@@ -35,8 +37,7 @@ const chainDwellTimes: { [key: number]: number } = {
 };
 
 function dwellTime(): number {
-  const { chain } = getNetwork();
-  return chainDwellTimes[chain?.id || 0] || 2500;
+  return chainDwellTimes[getChainId(wagmiConfig())] || 2500;
 }
 
 export async function pollReceipt(
@@ -56,7 +57,7 @@ export async function pollReceipt(
 export async function writePreparedAndFetchReceipt(
   prepared: any,
 ): Promise<TransactionReceipt> {
-  const { hash } = await writeContract(prepared.request);
+  const hash = await writeContract(wagmiConfig(), prepared.request);
   return await pollReceipt(hash);
 }
 
@@ -83,7 +84,7 @@ export type TMappingMulticall<T> = MulticallContracts<any> & {
 export async function mapMulticall<T>(
   contracts: readonly TMappingMulticall<T>[],
 ) {
-  const response = await readContracts({ contracts });
+  const response = await readContracts(wagmiConfig(), { contracts });
   response.forEach((call, index) => {
     if (!call.error) {
       contracts[index].fn(call.result);

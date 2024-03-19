@@ -1,8 +1,9 @@
-import { readContracts, prepareWriteContract } from '@wagmi/core';
+import { readContracts, simulateContract } from '@wagmi/core';
 import { TransactionReceipt } from 'viem';
-import { erc20TokenABI } from '../generated.js';
+import { erc20TokenAbi } from '../generated.js';
 import { writePreparedAndFetchReceipt } from '../utils.js';
 import { TMappingMulticall } from '../utils.js';
+import { wagmiConfig } from '../config/index.js';
 
 export type ApprovalRequest = {
   /** The address of the ERC-20 token */
@@ -35,7 +36,7 @@ export function prepareHoldingsMulticall(
 ): TMappingMulticall<ApprovedTokens>[] {
   const contract = {
     address: erc20Address,
-    abi: erc20TokenABI,
+    abi: erc20TokenAbi,
     chainId,
   };
 
@@ -70,8 +71,8 @@ export function prepareHoldingsMulticall(
 export async function prepareTokenApproval(
   request: ApprovalRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
-  const txn = await prepareWriteContract({
-    abi: erc20TokenABI,
+  const txn = await simulateContract(wagmiConfig(), {
+    abi: erc20TokenAbi,
     address: request.address,
     functionName: 'approve',
     args: [request.spender, request.amount],
@@ -92,17 +93,17 @@ export async function fetchTokenAllowance(
   const {
     0: { result: balance },
     1: { result: approved },
-  } = await readContracts({
+  } = await readContracts(wagmiConfig(), {
     contracts: [
       {
-        abi: erc20TokenABI,
+        abi: erc20TokenAbi,
         address: request.address,
         functionName: 'balanceOf',
         args: [request.owner],
         chainId: request.chainId,
       },
       {
-        abi: erc20TokenABI,
+        abi: erc20TokenAbi,
         address: request.address,
         functionName: 'allowance',
         args: [request.owner, request.spender],

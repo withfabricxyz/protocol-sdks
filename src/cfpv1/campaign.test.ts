@@ -4,6 +4,7 @@ import { TransactionReceipt, zeroAddress } from 'viem';
 import {
   setupMockConfig,
   deployCrowdFinancingContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
 import { prepareCampaignDeployment, CampaignConfig } from './factory.js';
 import {
@@ -96,10 +97,8 @@ const helpers = {
 };
 
 beforeEach(async (context: TCampaignTestContext) => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
+
   const { factoryAddress } = await deployCrowdFinancingContracts();
   const config: CampaignConfig = {
     recipientAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',

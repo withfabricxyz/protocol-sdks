@@ -1,8 +1,7 @@
-import { fetchBalance, readContract } from '@wagmi/core';
+import { getBalance, readContract, simulateContract } from '@wagmi/core';
 import { TransactionReceipt, zeroAddress } from 'viem';
 import {
-  prepareWriteCrowdFinancingV1,
-  crowdFinancingV1ABI,
+  crowdFinancingV1Abi as abi,
 } from '../generated.js';
 import {
   writePreparedAndFetchReceipt,
@@ -10,6 +9,15 @@ import {
   TMappingMulticall,
 } from '../utils.js';
 import { prepareHoldingsMulticall, ApprovedTokens } from '../erc20/index.js';
+import { wagmiConfig } from '../config/index.js';
+
+
+async function prepareWriteCrowdFinancingV1(args: any) {
+  return simulateContract(wagmiConfig(), {
+    abi,
+    ...args,
+  });
+}
 
 export type CampaignRequest = {
   /** The contract address of the campaign */
@@ -98,8 +106,8 @@ export type FullState = {
 async function fetchCampaignERC20Address({
   campaignAddress,
 }: CampaignRequest): Promise<`0x${string}`> {
-  return readContract({
-    abi: crowdFinancingV1ABI,
+  return readContract(wagmiConfig(), {
+    abi,
     address: campaignAddress,
     functionName: 'erc20Address',
   });
@@ -112,7 +120,7 @@ function prepareStateMulticall(
 ): TMappingMulticall<CampaignState>[] {
   const contract = {
     address,
-    abi: crowdFinancingV1ABI,
+    abi,
     chainId,
   };
 
@@ -234,7 +242,7 @@ function prepareAccountStateMulticall(
 ): TMappingMulticall<AccountState>[] {
   const contract = {
     address: campaignAddress,
-    abi: crowdFinancingV1ABI,
+    abi,
     chainId,
   };
 
@@ -337,7 +345,7 @@ export async function fetchFullState({
       ),
     );
   } else {
-    holdings.balance = (await fetchBalance({ address: account, chainId })).value;
+    holdings.balance = (await getBalance(wagmiConfig(), { address: account, chainId })).value;
   }
 
   return {

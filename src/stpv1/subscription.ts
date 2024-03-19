@@ -1,8 +1,7 @@
-import { fetchBalance, readContract } from '@wagmi/core';
-import { TransactionReceipt, zeroAddress } from 'viem';
+import { getBalance, readContract, simulateContract } from '@wagmi/core';
+import { TransactionReceipt, checksumAddress, zeroAddress } from 'viem';
 import {
-  prepareWriteSubscriptionTokenV1,
-  subscriptionTokenV1ABI as abi,
+  subscriptionTokenV1Abi as abi,
 } from '../generated.js';
 import {
   writePreparedAndFetchReceipt,
@@ -11,6 +10,16 @@ import {
 } from '../utils.js';
 import { ApprovedTokens } from '../erc20/index.js';
 import { prepareHoldingsMulticall } from '../erc20/index.js';
+import { wagmiConfig } from '../config/index.js';
+
+
+async function prepareWriteSubscriptionTokenV1(args: any) {
+  return simulateContract(wagmiConfig(), {
+    abi,
+    ...args,
+  });
+}
+
 
 export type CollectionRequest = {
   /** The contract address of the campaign */
@@ -147,7 +156,7 @@ async function fetchERC20Address({
   contractAddress,
   chainId,
 }: CollectionRequest): Promise<`0x${string}`> {
-  return readContract({
+  return readContract(wagmiConfig(), {
     abi,
     address: contractAddress,
     functionName: 'erc20Address',
@@ -323,7 +332,7 @@ export async function fetchSubscriberState({
 }: SubscriberRequest): Promise<SubscriberState> {
   const state: Partial<SubscriberState> = {};
   await mapMulticall(
-    prepareSubscriberStateMulticall(contractAddress, account, state, chainId),
+    prepareSubscriberStateMulticall(contractAddress, checksumAddress(account), state, chainId),
   );
   return state as SubscriberState;
 }
@@ -366,7 +375,7 @@ export async function fetchContext({
       ),
     );
   } else {
-    holdings.balance = (await fetchBalance({ address: account, chainId })).value;
+    holdings.balance = (await getBalance(wagmiConfig(), { address: account, chainId })).value;
     holdings.approved = holdings.balance;
   }
 
@@ -429,10 +438,11 @@ export async function prepareDeleteReferralCode(
 export async function prepareGrantTime(
   request: GrantRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
+  const accounts = request.accounts.map((a) => checksumAddress(a));
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'grantTime',
-    args: [request.accounts, request.numSeconds],
+    args: [accounts, request.numSeconds],
     chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
@@ -473,7 +483,7 @@ export async function prepareMintWithReferral(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'mintWithReferral',
-    args: [request.amount, request.referralCode, request.referrer],
+    args: [request.amount, request.referralCode, checksumAddress(request.referrer)],
     value: isERC20 ? 0n : request.amount,
     chainId: request.chainId,
   });
@@ -494,7 +504,7 @@ export async function prepareMintFor(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'mintFor',
-    args: [request.account, request.amount],
+    args: [checksumAddress(request.account), request.amount],
     value: isERC20 ? 0n : request.amount,
     chainId: request.chainId,
   });
@@ -516,10 +526,10 @@ export async function prepareMintWithReferralFor(
     address: request.contractAddress,
     functionName: 'mintWithReferralFor',
     args: [
-      request.account,
+      checksumAddress(request.account),
       request.amount,
       request.referralCode,
-      request.referrer,
+      checksumAddress(request.referrer),
     ],
     value: isERC20 ? 0n : request.amount,
     chainId: request.chainId,
@@ -573,7 +583,7 @@ export async function prepareWithdrawTo(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'withdrawTo',
-    args: [request.account],
+    args: [checksumAddress(request.account)],
     chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
@@ -642,11 +652,11 @@ export async function prepareRefund(
 ): Promise<() => Promise<TransactionReceipt>> {
   const isERC20 =
     request.erc20 || (await fetchERC20Address(request)) !== zeroAddress;
-
+  const accounts = request.accounts.map((a) => checksumAddress(a));
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'refund',
-    args: [request.credit || 0n, request.accounts],
+    args: [request.credit || 0n, accounts],
     value: isERC20 ? 0n : request.credit || 0n,
     chainId: request.chainId,
   });
@@ -665,7 +675,7 @@ export async function prepareTransferOwnership(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'transferOwnership',
-    args: [request.newOwner],
+    args: [checksumAddress(request.newOwner)],
     chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);
@@ -738,7 +748,7 @@ export async function prepareSlashRewards(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'slashRewards',
-    args: [request.account],
+    args: [checksumAddress(request.account)],
     chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);

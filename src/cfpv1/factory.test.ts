@@ -2,18 +2,14 @@ import { expect, test } from 'vitest';
 import { CampaignConfig, prepareCampaignDeployment } from './factory.js';
 
 import {
-  setupMockConfig,
   deployCrowdFinancingContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
-import { connect } from '@wagmi/core';
 import { zeroAddress } from 'viem';
 import { fetchCampaignState } from './campaign.js';
 
 test('deploys a campaign', async () => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
   const { factoryAddress } = await deployCrowdFinancingContracts();
 
   const config: CampaignConfig = {

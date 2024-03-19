@@ -1,11 +1,11 @@
 import {
-  crowdFinancingV1FactoryABI,
-  crowdFinancingV1ABI,
-  erc20TokenABI,
+  crowdFinancingV1FactoryAbi,
+  crowdFinancingV1Abi,
+  erc20TokenAbi,
 } from './generated.js';
 import {
-  subscriptionTokenV1FactoryABI,
-  subscriptionTokenV1ABI,
+  subscriptionTokenV1FactoryAbi,
+  subscriptionTokenV1Abi,
 } from './generated.js';
 
 import { pollReceipt } from './utils.js';
@@ -19,7 +19,7 @@ import {
   SubscriptionTokenV1Bytecode,
   SubscriptionTokenV1FactoryBytecode,
 } from './bytecode.js';
-import { WalletClient } from '@wagmi/core';
+import { WalletClient } from 'viem';
 
 async function resolveContract(
   hash: `0x${string}`,
@@ -47,7 +47,9 @@ export async function deployToken(
   numTokens: bigint,
 ): Promise<`0x${string}`> {
   const hash = await wallet.deployContract({
-    abi: erc20TokenABI,
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: erc20TokenAbi,
     bytecode: ERC20TokenBytecode,
     args: [name, symbol, numTokens],
   });
@@ -63,7 +65,9 @@ export async function deploySTPLogic(
   wallet: WalletClient,
 ): Promise<`0x${string}`> {
   const hash = await wallet.deployContract({
-    abi: subscriptionTokenV1ABI,
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: subscriptionTokenV1Abi,
     bytecode: SubscriptionTokenV1Bytecode,
   });
   return resolveContract(hash, 'SubscriptionTokenV1');
@@ -80,7 +84,9 @@ export async function deploySTPFactory(
   logicAddress: `0x${string}`,
 ): Promise<`0x${string}`> {
   const hash = await wallet.deployContract({
-    abi: subscriptionTokenV1FactoryABI,
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: subscriptionTokenV1FactoryAbi,
     bytecode: SubscriptionTokenV1FactoryBytecode,
     args: [logicAddress],
   });
@@ -96,7 +102,9 @@ export async function deployCFPLogic(
   wallet: WalletClient,
 ): Promise<`0x${string}`> {
   const hash = await wallet.deployContract({
-    abi: crowdFinancingV1ABI,
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: crowdFinancingV1Abi,
     bytecode: CrowdFinancingV1Bytecode,
   });
   return resolveContract(hash, 'CrowdFinancingV1');
@@ -113,7 +121,9 @@ export async function deployCFPFactory(
   logicAddress: `0x${string}`,
 ): Promise<`0x${string}`> {
   const hash = await wallet.deployContract({
-    abi: crowdFinancingV1FactoryABI,
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: crowdFinancingV1FactoryAbi,
     bytecode: CrowdFinancingV1FactoryBytecode,
     args: [logicAddress],
   });
