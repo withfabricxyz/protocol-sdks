@@ -1,11 +1,11 @@
-import { prepareWriteContract, readContract, getNetwork } from '@wagmi/core';
+import { simulateContract, readContract, getChainId } from '@wagmi/core';
 import {
-  crowdFinancingV1FactoryABI as abi,
+  crowdFinancingV1FactoryAbi as abi,
   crowdFinancingV1FactoryAddress,
 } from '../generated.js';
 import { writePreparedAndFetchReceipt, getToFilteredLogs } from '../utils.js';
 import { TransactionReceipt, zeroAddress } from 'viem';
-import { config } from '../config/index.js';
+import { config, wagmiConfig } from '../config/index.js';
 
 export type CampaignConfig = {
   /** Where raised funds are transfered */
@@ -57,7 +57,7 @@ function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
 /// @dev The factory address is configurable per network, and common networks have pre-defined values
 /// @see wagmi.config.ts
 function contractAddress(): `0x${string}` {
-  const chainId = getNetwork().chain?.id;
+  const chainId = getChainId(wagmiConfig());
   return factoryAddresses()[
     chainId as keyof typeof crowdFinancingV1FactoryAddress
   ];
@@ -84,7 +84,7 @@ export async function fetchFeeSchedule(
   chainId?: number,
 ): Promise<FeeSchedule> {
   const [collectorAddress, transferFeeBips, yieldFeeBips, deployFeeWei] =
-    await readContract({
+    await readContract(wagmiConfig(), {
       address: factoryAddress || contractAddress(),
       abi,
       functionName: 'feeSchedule',
@@ -129,7 +129,7 @@ export async function prepareCampaignDeployment(
     config.chainId,
   );
 
-  const txn = await prepareWriteContract({
+  const txn = await simulateContract(wagmiConfig(),{
     address: config.factoryAddress || contractAddress(),
     abi,
     functionName: 'deployCampaign',

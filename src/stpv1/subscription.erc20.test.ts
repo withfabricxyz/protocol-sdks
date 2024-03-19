@@ -1,10 +1,9 @@
 import { expect, beforeEach, test, TestContext } from 'vitest';
-import { connect } from '@wagmi/core';
 import { parseEther } from 'viem';
 import { CollectionConfig, prepareDeployment } from './factory.js';
 import {
-  setupMockConfig,
   deploySubscriptionNFTContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
 import { configureFabricSDK } from '../config/index.js';
 
@@ -17,10 +16,7 @@ type TSubscriptionTestContext = TestContext & {
 };
 
 beforeEach(async (context: TSubscriptionTestContext) => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
   const { factoryAddress, tokenAddress } =
     await deploySubscriptionNFTContracts();
   configureFabricSDK({

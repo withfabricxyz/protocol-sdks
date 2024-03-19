@@ -1,19 +1,15 @@
 import { expect, test } from 'vitest';
 import { CollectionConfig, prepareDeployment } from './factory.js';
 import {
-  setupMockConfig,
   deploySubscriptionNFTContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
-import { connect } from '@wagmi/core';
 import { configureFabricSDK } from '../config/index.js';
 import { fetchCollectionState } from './subscription.js';
 import { zeroAddress } from 'viem';
 
 test('deploys a campaign', async () => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
   const { factoryAddress } = await deploySubscriptionNFTContracts();
 
   configureFabricSDK({
@@ -54,10 +50,7 @@ test('deploys a campaign', async () => {
 });
 
 test('deploy on unsupported chain', async () => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
 
   const config: CollectionConfig = {
     name: 'Test',

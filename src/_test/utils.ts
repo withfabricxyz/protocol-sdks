@@ -2,11 +2,13 @@ import { localHttpUrl } from './constants.js';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Chain, localhost } from '@wagmi/core/chains';
-import { WalletClient, configureChains, createConfig } from '@wagmi/core';
-import { MockConnector } from '@wagmi/core/connectors/mock';
-import { publicProvider } from '@wagmi/core/providers/public';
+import { createConfig } from '@wagmi/core';
+import { WalletClient } from 'viem';
+import { mock } from '@wagmi/connectors';
 import { deploySTPLogic, deploySTPFactory, deployToken } from '../deploy.js';
 import { deployCFPFactory, deployCFPLogic } from '../deploy.js';
+import { configureFabricSDK } from '../config/index.js';
+import { connect } from '@wagmi/core';
 
 export const anvilChain = {
   ...localhost,
@@ -78,24 +80,24 @@ export async function deploySubscriptionNFTContracts(): Promise<{
 }
 
 export function setupMockConfig() {
-  const { chains, publicClient, webSocketPublicClient } = configureChains(
-    [anvilChain],
-    [publicProvider()],
-  );
-
-  const connector = new MockConnector({
-    chains: chains,
-    options: {
-      walletClient: buildWalletClient(),
-      flags: {
-        isAuthorized: true,
-      },
+  return createConfig({
+    chains: [anvilChain],
+    connectors: [
+      mock({
+        accounts: ['0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266']
+      }),
+    ],
+    transports: {
+      [anvilChain.id]: http(),
     },
   });
+}
 
-  return createConfig({
-    connectors: [connector],
-    publicClient,
-    webSocketPublicClient,
+export async function wagmiTestSetup() : Promise<void> {
+  const config = setupMockConfig();
+  configureFabricSDK({ wagmiConfig: config });
+
+  await connect(config, {
+    connector: config.connectors[0],
   });
 }

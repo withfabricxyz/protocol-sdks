@@ -4,6 +4,7 @@ import { TransactionReceipt } from 'viem';
 import {
   setupMockConfig,
   deployCrowdFinancingContracts,
+  wagmiTestSetup,
 } from '../_test/utils.js';
 import { prepareCampaignDeployment, CampaignConfig } from './factory.js';
 import {
@@ -95,10 +96,7 @@ const helpers = {
 };
 
 beforeEach(async (context: TCampaignTestContext) => {
-  const wagmiConfig = setupMockConfig();
-  await connect({
-    connector: wagmiConfig.connectors[0],
-  });
+  await wagmiTestSetup();
   const { factoryAddress, tokenAddress: erc20TokenAddress } =
     await deployCrowdFinancingContracts();
   const config: CampaignConfig = {
