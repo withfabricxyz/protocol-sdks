@@ -13,7 +13,7 @@ import {
   Abi,
 } from 'viem';
 
-import { wagmiConfig } from './config';
+import { wagmiConfig } from './config/index.js';
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
