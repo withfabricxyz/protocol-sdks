@@ -1,6 +1,6 @@
 {
   "name": "@withfabric/protocol-sdks",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SDKs for Fabric EVM Protocols",
   "author": "Fabric Inc.",
   "license": "ISC",
