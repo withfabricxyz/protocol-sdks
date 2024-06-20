@@ -10,7 +10,7 @@ jobs:
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: 20
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
       with:
@@ -19,6 +19,8 @@ jobs:
       run: npm i
     - name: Linter check
       run: npm run lint
+    - name: Formatting check
+      run: npm run format:check
     - name: Ensure the App Builds
       run: npm run build
     - name: Check Bundle Sizes

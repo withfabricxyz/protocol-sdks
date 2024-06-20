@@ -1,6 +1,6 @@
 {
   "name": "@withfabric/protocol-sdks",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "SDKs for Fabric EVM Protocols",
   "author": "Fabric Inc.",
   "license": "ISC",
@@ -20,10 +20,11 @@
     "test": "vitest dev",
     "test:coverage": "vitest dev --coverage",
     "test:ci": "CI=true vitest --coverage",
-    "generate": "./scripts/import_bytecode && wagmi generate",
+    "generate": "./scripts/import_bytecode && wagmi generate && npm run format",
     "docs": "typedoc --plugin typedoc-plugin-markdown --out docs src/",
     "size": "size-limit",
-    "format": "prettier 'src/**/*.ts' --write"
+    "format": "prettier 'src/**/*.ts' --write",
+    "format:check": "prettier 'src/**/*.ts' --check"
   },
   "type": "module",
   "main": "./dist/esm/index.js",
@@ -40,9 +41,17 @@
       "types": "./dist/types/index.d.ts",
       "default": "./dist/esm/index.js"
     },
+    "./stp": {
+      "types": "./dist/types/stp/index.d.ts",
+      "default": "./dist/esm/stp/index.js"
+    },
     "./stpv1": {
       "types": "./dist/types/stpv1/index.d.ts",
       "default": "./dist/esm/stpv1/index.js"
+    },
+    "./stpv2": {
+      "types": "./dist/types/stpv2/index.d.ts",
+      "default": "./dist/esm/stpv2/index.js"
     },
     "./cfpv1": {
       "types": "./dist/types/cfpv1/index.d.ts",
@@ -56,11 +65,20 @@
   },
   "typesVersions": {
     "*": {
+      "stp": [
+        "./dist/types/stp/index.d.ts"
+      ],
       "stpv1": [
         "./dist/types/stpv1/index.d.ts"
       ],
+      "stpv2": [
+        "./dist/types/stpv2/index.d.ts"
+      ],
       "cfpv1": [
         "./dist/types/cfpv1/index.d.ts"
+      ],
+      "deploy": [
+        "./dist/types/deploy.d.ts"
       ]
     }
   },
@@ -101,12 +119,12 @@
     {
       "name": "cjs",
       "path": "./dist/cjs/index.js",
-      "limit": "10 kB"
+      "limit": "15 kB"
     },
     {
       "name": "esm",
       "path": "./dist/esm/index.js",
-      "limit": "10 kB",
+      "limit": "15 kB",
       "import": "*"
     }
   ]

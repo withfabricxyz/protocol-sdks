@@ -1,6 +1,6 @@
 import { expect, beforeEach, test, TestContext, beforeAll } from 'vitest';
 import { getBalance } from '@wagmi/core';
-import { TransactionReceipt, parseEther } from 'viem';
+import { TransactionReceipt, hexToBigInt, numberToHex, parseEther } from 'viem';
 import { CollectionConfig, prepareDeployment } from './factory.js';
 import {
   deploySubscriptionNFTContracts,
@@ -31,7 +31,10 @@ import {
   prepareSetTransferRecipient,
   prepareTransferAllBalances,
   prepareWithdrawRewards,
+  fetchTokenOwners,
+  fetchSubscribers,
 } from './subscription.js';
+import { range } from '../utils.js';
 
 type TSubscriptionTestContext = TestContext & {
   contractAddress: `0x${string}`;
@@ -305,6 +308,11 @@ test('Refund Accounts', async ({
     })
   )();
 
+  const holderBefore = await fetchSubscriberState({
+    contractAddress,
+    account: accounts[0],
+  });
+
   const { status } = await (
     await prepareRefund({
       contractAddress,
@@ -313,13 +321,13 @@ test('Refund Accounts', async ({
   )();
   expect(status).toEqual('success');
 
-  for (let i = 0; i < accounts.length; i++) {
-    const holder = await fetchSubscriberState({
-      contractAddress,
-      account: accounts[i],
-    });
-    expect(holder.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 60000);
-  }
+  const holder = await fetchSubscriberState({
+    contractAddress,
+    account: accounts[0],
+  });
+  expect(holder.expiresAt.getTime()).toBeLessThan(
+    holderBefore.expiresAt.getTime(),
+  );
 });
 
 test('Referrals + Mint', async ({
@@ -438,4 +446,37 @@ test('Withdraw rewards', async () => {
   )();
 
   expect(status).toEqual('success');
+});
+
+test('Sub fetching', async ({ contractAddress }: TSubscriptionTestContext) => {
+  const inAccounts = range(1n, 100n).map((i) => {
+    return numberToHex(i, { size: 20 });
+  });
+
+  const prep = await prepareGrantTime({
+    contractAddress,
+    accounts: inAccounts,
+    numSeconds: 50000n,
+  });
+
+  const { status: grant } = await prep();
+
+  expect(grant).toEqual('success');
+
+  const outAccounts = await fetchTokenOwners({
+    contractAddress,
+    fromTokenId: 1n,
+    toTokenId: 100n,
+  });
+  expect(outAccounts.length).toEqual(inAccounts.length);
+  expect(outAccounts.map((x) => x.toLowerCase())).toEqual(inAccounts);
+
+  const subscriptions = await fetchSubscribers({
+    contractAddress,
+    accounts: outAccounts,
+  });
+  expect(subscriptions.length).toEqual(100);
+  subscriptions.forEach((sub) => {
+    expect(sub.tokenId).toEqual(hexToBigInt(sub.address));
+  });
 });

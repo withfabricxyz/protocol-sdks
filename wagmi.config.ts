@@ -6,7 +6,24 @@ export default defineConfig({
   out: 'src/generated.ts',
   plugins: [
     foundry({
-      project: process.env.CONTRACTS_DIR,
+      project: '../stp-v2',
+      forge: {
+        clean: false,
+        build: false,
+      },
+      include: [
+        'STPV2.sol/**/*.json',
+        'STPV2Factory.sol/**/*.json',
+      ],
+      deployments: {
+        STPV2Factory: {
+          11155111: '0x0e1869D738E67fE83323013F2C5e44DF1b788E35',
+          8453: '0xd79A71657a45F713817cB5366053a7629AF8Fe74',
+        },
+      },
+    }),
+    foundry({
+      project: '../contracts',
       include: [
         'CrowdFinancing*/**/*.json',
         'ERC20Token*/**/*.json',

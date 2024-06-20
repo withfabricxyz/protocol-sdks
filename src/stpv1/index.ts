@@ -1,9 +1,7 @@
 export {
   type PurchaseRequest,
-  type CollectionRequest,
   type OwnershipTransferRequest,
   type MetadataUpdateRequest,
-  type SubscriberRequest,
   type GrantRequest,
   type RefundRequest,
   type CollectionState,
@@ -39,8 +37,8 @@ export {
   prepareReconcileNativeBalance,
   prepareRecoverNativeTokens,
   isTokenApprovalRequired,
-  encodeReferral,
-  decodeReferral,
+  fetchTokenOwners,
+  fetchSubscribers,
 } from './subscription.js';
 
 export {
@@ -49,6 +47,7 @@ export {
   type FeeSchedule,
   fetchFeeSchedule,
   prepareDeployment,
+  factoryAddresses,
 } from './factory.js';
 
 export {

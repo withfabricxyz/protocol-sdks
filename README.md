@@ -55,12 +55,19 @@ The Fabric CrowdFi protocol moves capital between creators and communities.
 * [Documentation](https://docs.withfabric.xyz/crowdfi/overview)
 * [Code](src/cfpv1)
 
-#### STPv1 - Subscription Token Protocol
+#### STP - Subscription Token Protocol
 
 The Fabric Subscription Token Protocol provides onchain recurring revenue for creators and businesses.
 
-* [Documentation](https://docs.withfabric.xyz/stp/overview)
+##### V1
+
+* [Documentation](https://docs.withfabric.xyz/stp/v1/overview)
 * [Code](src/stpv1)
+
+##### V2
+
+* [Documentation](https://docs.withfabric.xyz/stp/overview)
+* [Code](src/stpv2)
 
 ### Contributing / Running
 

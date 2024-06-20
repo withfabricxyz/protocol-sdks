@@ -1,5 +1,5 @@
-import { readContracts, simulateContract } from '@wagmi/core';
-import { TransactionReceipt } from 'viem';
+import { getClient, readContracts, simulateContract } from '@wagmi/core';
+import { TransactionReceipt, getContract } from 'viem';
 import { erc20TokenAbi } from '../generated.js';
 import { writePreparedAndFetchReceipt } from '../utils.js';
 import { TMappingMulticall } from '../utils.js';
@@ -26,6 +26,21 @@ export type ApprovedTokens = {
   /** The amount of ERC-20 tokens approved for use */
   approved: bigint;
 };
+
+export function loadContract({
+  chainId,
+  contractAddress,
+}: {
+  chainId?: number;
+  contractAddress: `0x${string}`;
+}) {
+  const client = getClient(wagmiConfig(), { chainId })!;
+  return getContract({
+    address: contractAddress,
+    abi: erc20TokenAbi,
+    client,
+  });
+}
 
 export function prepareHoldingsMulticall(
   campaignAddress: `0x${string}`,

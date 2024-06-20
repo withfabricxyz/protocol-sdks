@@ -2,26 +2,24 @@ import {
   writeContract,
   getPublicClient,
   readContracts,
-  getChainId,
+  waitForTransactionReceipt,
 } from '@wagmi/core';
 
 import {
   TransactionReceipt,
   TransactionReceiptNotFoundError,
-  decodeEventLog,
   MulticallContracts,
-  Abi,
 } from 'viem';
 
 import { wagmiConfig } from './config/index.js';
-
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function fetchReceipt(
   hash: `0x${string}`,
 ): Promise<TransactionReceipt | null> {
   try {
-    return await getPublicClient(wagmiConfig())!.getTransactionReceipt({ hash });
+    return await getPublicClient(wagmiConfig())!.getTransactionReceipt({
+      hash,
+    });
   } catch (err) {
     if (err instanceof TransactionReceiptNotFoundError) {
       return null;
@@ -30,51 +28,11 @@ export async function fetchReceipt(
   }
 }
 
-// How frequently to poll for a receipt, in milliseconds
-const chainDwellTimes: { [key: number]: number } = {
-  1: 5000,
-  31337: 250,
-};
-
-function dwellTime(): number {
-  return chainDwellTimes[getChainId(wagmiConfig())] || 2500;
-}
-
-export async function pollReceipt(
-  hash: `0x${string}`,
-): Promise<TransactionReceipt> {
-  const dwell = dwellTime();
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const receipt = await fetchReceipt(hash);
-    if (receipt) {
-      return receipt;
-    }
-    await sleep(dwell);
-  }
-}
-
 export async function writePreparedAndFetchReceipt(
   prepared: any,
 ): Promise<TransactionReceipt> {
   const hash = await writeContract(wagmiConfig(), prepared.request);
-  return await pollReceipt(hash);
-}
-
-export function getToFilteredLogs(
-  receipt: TransactionReceipt,
-  abi: Abi,
-): any[] {
-  return receipt.logs
-    .filter((log) => log.address === receipt.to)
-    .map((log) => {
-      return decodeEventLog({
-        abi,
-        data: log.data,
-        topics: log.topics,
-        strict: false,
-      });
-    });
+  return waitForTransactionReceipt(wagmiConfig(), { hash });
 }
 
 export type TMappingMulticall<T> = MulticallContracts<any> & {
@@ -90,4 +48,12 @@ export async function mapMulticall<T>(
       contracts[index].fn(call.result);
     }
   });
+}
+
+export function range(start: bigint, end: bigint): bigint[] {
+  const result = [];
+  for (let i = start; i <= end; i++) {
+    result.push(i);
+  }
+  return result;
 }

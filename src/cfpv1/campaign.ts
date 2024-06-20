@@ -1,8 +1,6 @@
 import { getBalance, readContract, simulateContract } from '@wagmi/core';
 import { TransactionReceipt, zeroAddress } from 'viem';
-import {
-  crowdFinancingV1Abi as abi,
-} from '../generated.js';
+import { crowdFinancingV1Abi as abi } from '../generated.js';
 import {
   writePreparedAndFetchReceipt,
   mapMulticall,
@@ -10,7 +8,6 @@ import {
 } from '../utils.js';
 import { prepareHoldingsMulticall, ApprovedTokens } from '../erc20/index.js';
 import { wagmiConfig } from '../config/index.js';
-
 
 async function prepareWriteCrowdFinancingV1(args: any) {
   return simulateContract(wagmiConfig(), {
@@ -345,7 +342,9 @@ export async function fetchFullState({
       ),
     );
   } else {
-    holdings.balance = (await getBalance(wagmiConfig(), { address: account, chainId })).value;
+    holdings.balance = (
+      await getBalance(wagmiConfig(), { address: account, chainId })
+    ).value;
   }
 
   return {
