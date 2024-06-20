@@ -1,9 +1,7 @@
 #!/bin/bash
 
-if [ "${CONTRACTS_DIR}" = '' ]; then
-  echo "CONTRACTS_DIR not set"
-  exit 1
-fi
+CONTRACTS_DIR="../contracts"
+STPV2_DIR="../stp-v2"
 
 TARGET_FILE="src/bytecode.ts"
 
@@ -13,6 +11,16 @@ contracts="CrowdFinancingV1 CrowdFinancingV1Factory ERC20Token SubscriptionToken
 for contract in $contracts; do
   echo "Importing Bytecode for contract ${contract} -> ${TARGET_FILE}"
   bytecode=$(cat ${CONTRACTS_DIR}/out/${contract}.sol/${contract}.json | jq -rj .bytecode.object)
+
+  echo "// Bytecode for ${contract}">> $TARGET_FILE
+  echo "export const ${contract}Bytecode = '${bytecode}';" >> $TARGET_FILE
+  echo >> $TARGET_FILE
+done
+
+contracts="STPV2 STPV2Factory"
+for contract in $contracts; do
+  echo "Importing Bytecode for contract ${contract} -> ${TARGET_FILE}"
+  bytecode=$(cat ${STPV2_DIR}/out/${contract}.sol/${contract}.json | jq -rj .bytecode.object)
 
   echo "// Bytecode for ${contract}">> $TARGET_FILE
   echo "export const ${contract}Bytecode = '${bytecode}';" >> $TARGET_FILE

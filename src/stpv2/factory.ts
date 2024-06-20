@@ -1,49 +1,24 @@
 import { simulateContract, readContract, getChainId } from '@wagmi/core';
-import {
-  subscriptionTokenV1FactoryAbi as abi,
-  subscriptionTokenV1FactoryAddress,
-} from '../generated.js';
+import { stpv2FactoryAbi as abi, stpv2FactoryAddress } from '../generated.js';
 import { writePreparedAndFetchReceipt } from '../utils.js';
-import { TransactionReceipt, parseEventLogs, zeroAddress } from 'viem';
+import { TransactionReceipt, parseEventLogs } from 'viem';
 import { config, wagmiConfig } from '../config/index.js';
 
-export type CollectionConfig = {
-  /** The name of the NFT */
-  name: string;
-  /** The symbol of the NFT */
-  symbol: string;
-  /** The contract metadata URI */
-  contractURI: string;
-  /** The token metadata URI */
-  tokenURI: string;
-  /** The number of tokens (wei) which buys one second of time */
-  tokensPerSecond: bigint;
-  /** Minimum purchase in seconds */
-  minPurchaseSeconds: bigint;
-  /** The percentage of the purchase amount to reward subscribers with */
-  subscriberRewardBps?: number;
-  /** The address of the ERC-20 token to use for purchases (0x0 for native token) */
-  erc20TokenAddress?: `0x${string}`;
-  /** The fee ID to use for the referral deployments (0 for default) */
-  feeId?: bigint;
-  /** The chain id (optional, or use connected chain) */
-  chainId?: number;
-};
+import { AbiParametersToPrimitiveTypes, ExtractAbiFunction } from 'abitype';
+
+export type DeployParams = AbiParametersToPrimitiveTypes<
+  ExtractAbiFunction<typeof abi, 'deploySubscription'>['inputs']
+>[0];
+
+export type FeeSchedule = AbiParametersToPrimitiveTypes<
+  ExtractAbiFunction<typeof abi, 'feeSchedule'>['outputs']
+>[0];
 
 export type Deployment = {
   /** The address of the deployed subscription NFT */
   contractAddress: `0x${string}`;
   /** The transaction receipt for the deployment */
   receipt: TransactionReceipt;
-};
-
-export type FeeSchedule = {
-  /** The address of the fee collector (0x0 if disabled) */
-  collectorAddress: `0x${string}`;
-  /** The fee in basis points to charge for all revenue */
-  feeBips: number;
-  /** The fee in wei to charge for deployments */
-  deployFeeWei: bigint;
 };
 
 /// @dev The logs contain the contract address, so we need to scrape it
@@ -60,10 +35,7 @@ function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
 /// @see wagmi.config.ts
 function contractAddress(targetChainId?: number): `0x${string}` {
   const chainId = targetChainId || getChainId(wagmiConfig());
-  const address =
-    factoryAddresses()[
-      chainId as keyof typeof subscriptionTokenV1FactoryAddress
-    ];
+  const address = factoryAddresses()[chainId];
 
   if (!address) {
     throw new Error(
@@ -79,8 +51,8 @@ function contractAddress(targetChainId?: number): `0x${string}` {
  */
 export function factoryAddresses(): { [key: number]: `0x${string}` } {
   return {
-    ...subscriptionTokenV1FactoryAddress,
-    ...(config?.stpv1?.factories || {}),
+    ...(stpv2FactoryAddress || {}),
+    ...(config?.stpv2?.factories || {}),
   };
 }
 
@@ -92,29 +64,17 @@ export function factoryAddresses(): { [key: number]: `0x${string}` } {
  */
 export async function fetchFeeSchedule({
   factoryAddress,
-  feeId,
   chainId,
 }: {
   factoryAddress?: `0x${string}`;
-  feeId?: bigint;
   chainId?: number;
 }): Promise<FeeSchedule> {
-  const [collectorAddress, feeBips, deployFeeWei] = await readContract(
-    wagmiConfig(),
-    {
-      address: factoryAddress || contractAddress(chainId),
-      abi,
-      functionName: 'feeInfo',
-      args: [feeId || 0n],
-      chainId,
-    },
-  );
-
-  return {
-    collectorAddress,
-    feeBips,
-    deployFeeWei,
-  };
+  return readContract(wagmiConfig(), {
+    address: factoryAddress || contractAddress(chainId),
+    abi,
+    functionName: 'feeSchedule',
+    chainId,
+  });
 }
 
 /**
@@ -124,32 +84,22 @@ export async function fetchFeeSchedule({
  * @throws Error if the transaction cannot be prepared (simulate fails, etc)
  */
 export async function prepareDeployment(
-  config: CollectionConfig,
+  config: DeployParams,
+  chainId?: number,
 ): Promise<() => Promise<Deployment>> {
-  const address = contractAddress(config.chainId);
-  const { deployFeeWei } = await fetchFeeSchedule({
+  const address = contractAddress(chainId);
+  const { deployFee } = await fetchFeeSchedule({
     factoryAddress: address,
-    feeId: config.feeId,
-    chainId: config.chainId,
+    chainId,
   });
 
   const txn = await simulateContract(wagmiConfig(), {
     address,
     abi,
     functionName: 'deploySubscription',
-    args: [
-      config.name,
-      config.symbol,
-      config.contractURI,
-      config.tokenURI,
-      config.tokensPerSecond,
-      config.minPurchaseSeconds,
-      config.subscriberRewardBps || 0,
-      config.erc20TokenAddress || zeroAddress,
-      config.feeId || 0n,
-    ],
-    value: deployFeeWei,
-    chainId: config.chainId,
+    args: [config],
+    value: deployFee,
+    chainId: chainId,
   });
 
   return async () => {

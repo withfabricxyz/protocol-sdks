@@ -1,17 +1,28 @@
-import { getBalance, readContract, simulateContract } from '@wagmi/core';
-import { TransactionReceipt, checksumAddress, zeroAddress } from 'viem';
+import { AbiParametersToPrimitiveTypes, ExtractAbiFunction } from 'abitype';
 import {
-  subscriptionTokenV1Abi as abi,
-} from '../generated.js';
+  getBalance,
+  readContract,
+  readContracts,
+  simulateContract,
+} from '@wagmi/core';
+import {
+  ContractFunctionArgs,
+  ContractFunctionName,
+  TransactionReceipt,
+  checksumAddress,
+  zeroAddress,
+} from 'viem';
+import { subscriptionTokenV1Abi as abi } from '../generated.js';
+import { type ContractRequest, type SubscriberRequest } from '../stp/common.js';
 import {
   writePreparedAndFetchReceipt,
   mapMulticall,
   TMappingMulticall,
+  range,
 } from '../utils.js';
 import { ApprovedTokens } from '../erc20/index.js';
 import { prepareHoldingsMulticall } from '../erc20/index.js';
 import { wagmiConfig } from '../config/index.js';
-
 
 async function prepareWriteSubscriptionTokenV1(args: any) {
   return simulateContract(wagmiConfig(), {
@@ -20,38 +31,25 @@ async function prepareWriteSubscriptionTokenV1(args: any) {
   });
 }
 
-
-export type CollectionRequest = {
-  /** The contract address of the campaign */
-  contractAddress: `0x${string}`;
-  /** Optional chain id (otherwise the connected chain) */
-  chainId?: number;
-};
-
-export type OwnershipTransferRequest = CollectionRequest & {
+export type OwnershipTransferRequest = ContractRequest & {
   /** The new owner address */
   newOwner: `0x${string}`;
 };
 
-export type SubscriberRequest = CollectionRequest & {
-  /** The account address */
-  account: `0x${string}`;
-};
-
-export type PurchaseRequest = CollectionRequest & {
+export type PurchaseRequest = ContractRequest & {
   /** The amount of tokens to contribute */
   amount: bigint;
   erc20?: boolean;
 };
 
-export type GrantRequest = CollectionRequest & {
+export type GrantRequest = ContractRequest & {
   /** The amount of seconds to grant to each account */
   numSeconds: bigint;
   /** The accounts to grant time to */
   accounts: `0x${string}`[];
 };
 
-export type RefundRequest = CollectionRequest & {
+export type RefundRequest = ContractRequest & {
   /** The accounts to refund */
   accounts: `0x${string}`[];
   /** Credit value */
@@ -60,14 +58,14 @@ export type RefundRequest = CollectionRequest & {
   erc20?: boolean;
 };
 
-export type MetadataUpdateRequest = CollectionRequest & {
+export type MetadataUpdateRequest = ContractRequest & {
   /** The contract level metadata data URI */
   contractUri: string;
   /** The token URI */
   tokenUri: string;
 };
 
-export type RecoverERC20Request = CollectionRequest & {
+export type RecoverERC20Request = ContractRequest & {
   /** The address of the ERC-20 token */
   erc20Address: `0x${string}`;
   /** The amount of ERC-20 tokens to recover */
@@ -155,7 +153,7 @@ export type FullState = {
 async function fetchERC20Address({
   contractAddress,
   chainId,
-}: CollectionRequest): Promise<`0x${string}`> {
+}: ContractRequest): Promise<`0x${string}`> {
   return readContract(wagmiConfig(), {
     abi,
     address: contractAddress,
@@ -314,7 +312,7 @@ function prepareSubscriberStateMulticall(
 export async function fetchCollectionState({
   contractAddress,
   chainId,
-}: CollectionRequest): Promise<CollectionState> {
+}: ContractRequest): Promise<CollectionState> {
   const state: Partial<CollectionState> = {};
   await mapMulticall(prepareStateMulticall(contractAddress, state, chainId));
   return state as CollectionState;
@@ -332,7 +330,12 @@ export async function fetchSubscriberState({
 }: SubscriberRequest): Promise<SubscriberState> {
   const state: Partial<SubscriberState> = {};
   await mapMulticall(
-    prepareSubscriberStateMulticall(contractAddress, checksumAddress(account), state, chainId),
+    prepareSubscriberStateMulticall(
+      contractAddress,
+      checksumAddress(account),
+      state,
+      chainId,
+    ),
   );
   return state as SubscriberState;
 }
@@ -375,7 +378,9 @@ export async function fetchContext({
       ),
     );
   } else {
-    holdings.balance = (await getBalance(wagmiConfig(), { address: account, chainId })).value;
+    holdings.balance = (
+      await getBalance(wagmiConfig(), { address: account, chainId })
+    ).value;
     holdings.approved = holdings.balance;
   }
 
@@ -384,6 +389,102 @@ export async function fetchContext({
     subscriber: holderState as SubscriberState,
     holdings: holdings as ApprovedTokens,
   };
+}
+
+// Constrained multi-call
+async function multiRead<
+  functionName extends ContractFunctionName<typeof abi, 'view'>,
+  args extends ContractFunctionArgs<typeof abi, 'view', functionName>,
+>({
+  contractAddress,
+  chainId,
+  functionName,
+  argsets,
+}: ContractRequest & { functionName: functionName; argsets: args[] }) {
+  const contracts = argsets.map((args) => {
+    return {
+      address: contractAddress,
+      chainId,
+      abi,
+      functionName,
+      args,
+    };
+  });
+
+  return readContracts(wagmiConfig(), {
+    // @ts-ignore todo: bound types correctly
+    contracts,
+  }).then((c) => c.map((r) => r.result));
+}
+
+/**
+ * Fetch the token owners for a given range
+ * @param request request for token owners
+ * @returns The token owner accounts (0x0 indicates no owner)
+ */
+export async function fetchTokenOwners({
+  contractAddress,
+  chainId,
+  fromTokenId,
+  toTokenId,
+}: ContractRequest & { fromTokenId?: bigint; toTokenId: bigint }): Promise<
+  `0x${string}`[]
+> {
+  const argsets: [bigint][] = range(fromTokenId || 1n, toTokenId).map(
+    (tokenId: bigint) => [tokenId],
+  );
+  return multiRead({
+    contractAddress,
+    chainId,
+    functionName: 'ownerOf',
+    argsets,
+  }).then((owners) => owners.map((o) => o as `0x${string}`));
+}
+
+/**
+ * Fetch the subscribers for a given set of accounts
+ * @returns The subscriber details for the given accounts
+ */
+export async function fetchSubscribers({
+  contractAddress,
+  chainId,
+  accounts,
+}: ContractRequest & { accounts: `0x${string}`[] }): Promise<
+  SubscriberState[]
+> {
+  const argsets: [`0x${string}`][] = accounts.map((a) => [a]);
+  const partial = {
+    contractAddress,
+    chainId,
+    argsets,
+  };
+  const subscribers = await multiRead({
+    ...partial,
+    functionName: 'subscriptionOf',
+  }).then((owners) => owners.map((o) => o as [bigint, bigint, bigint, bigint]));
+
+  const rewards = await multiRead({
+    ...partial,
+    functionName: 'rewardBalanceOf',
+  }).then((owners) => owners.map((o) => o as bigint));
+
+  const refunds = await multiRead({
+    ...partial,
+    functionName: 'refundableBalanceOf',
+  }).then((owners) => owners.map((o) => o as bigint));
+
+  return accounts.map((address, i) => {
+    const [tokenId, secondsPurchased, rewardPoints, expiresAt] = subscribers[i];
+    return {
+      address,
+      tokenId,
+      secondsPurchased,
+      rewardPoints,
+      expiresAt: new Date(Number(expiresAt) * 1000),
+      rewardBalance: rewards[i],
+      refundableSeconds: refunds[i],
+    };
+  });
 }
 
 ////////////////////
@@ -397,7 +498,7 @@ export async function fetchContext({
  * @throws If the transaction cannot be prepared
  */
 export async function prepareCreateReferralCode(
-  request: CollectionRequest & {
+  request: ContractRequest & {
     referralCode: bigint;
     bps: number;
   },
@@ -418,7 +519,7 @@ export async function prepareCreateReferralCode(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareDeleteReferralCode(
-  request: CollectionRequest & { referralCode: bigint },
+  request: ContractRequest & { referralCode: bigint },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -483,7 +584,11 @@ export async function prepareMintWithReferral(
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
     functionName: 'mintWithReferral',
-    args: [request.amount, request.referralCode, checksumAddress(request.referrer)],
+    args: [
+      request.amount,
+      request.referralCode,
+      checksumAddress(request.referrer),
+    ],
     value: isERC20 ? 0n : request.amount,
     chainId: request.chainId,
   });
@@ -544,7 +649,7 @@ export async function prepareMintWithReferralFor(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareWithdraw(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -561,7 +666,7 @@ export async function prepareWithdraw(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareWithdrawAndTransferFees(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -578,7 +683,7 @@ export async function prepareWithdrawAndTransferFees(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareWithdrawTo(
-  request: CollectionRequest & { account: `0x${string}` },
+  request: ContractRequest & { account: `0x${string}` },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -596,7 +701,7 @@ export async function prepareWithdrawTo(
  * @throws If the transaction cannot be prepared
  */
 export async function preparePause(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -613,7 +718,7 @@ export async function preparePause(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareUnpause(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -688,7 +793,7 @@ export async function prepareTransferOwnership(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareSetSupplyCap(
-  request: CollectionRequest & { supplyCap: bigint },
+  request: ContractRequest & { supplyCap: bigint },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -707,7 +812,7 @@ export async function prepareSetSupplyCap(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareSetTransferRecipient(
-  request: CollectionRequest & { recipient: `0x${string}` },
+  request: ContractRequest & { recipient: `0x${string}` },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -725,7 +830,7 @@ export async function prepareSetTransferRecipient(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareTransferAllBalances(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -743,7 +848,7 @@ export async function prepareTransferAllBalances(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareSlashRewards(
-  request: CollectionRequest & { account: `0x${string}` },
+  request: ContractRequest & { account: `0x${string}` },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -761,7 +866,7 @@ export async function prepareSlashRewards(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareWithdrawRewards(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -778,7 +883,7 @@ export async function prepareWithdrawRewards(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareAcceptOwnership(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -795,7 +900,7 @@ export async function prepareAcceptOwnership(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareReconcileERC20Balance(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -830,7 +935,7 @@ export async function prepareRecoverERC20(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareReconcileNativeBalance(
-  request: CollectionRequest,
+  request: ContractRequest,
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -847,7 +952,7 @@ export async function prepareReconcileNativeBalance(
  * @throws If the transaction cannot be prepared
  */
 export async function prepareRecoverNativeTokens(
-  request: CollectionRequest & { recipient: `0x${string}` },
+  request: ContractRequest & { recipient: `0x${string}` },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await prepareWriteSubscriptionTokenV1({
     address: request.contractAddress,
@@ -876,28 +981,4 @@ export function isTokenApprovalRequired(
     return false;
   }
   return numTokens > context.holdings.approved;
-}
-
-/**
- * @description Encodes a referral code as a single string
- * @param referralCode The referral code to encode
- * @returns The encoded referral code
- */
-export function encodeReferral({
-  referralCode,
-  referrer,
-}: ReferralDetail): string {
-  return referrer + referralCode.toString();
-}
-
-/**
- * @description Decodes a referral code from a single string
- * @param encoded The encoded referral code
- * @returns The decoded referral code as ReferralDetail
- */
-export function decodeReferral(encoded: string): ReferralDetail {
-  return {
-    referrer: encoded.slice(0, 42) as `0x${string}`,
-    referralCode: BigInt(encoded.slice(42)),
-  };
 }

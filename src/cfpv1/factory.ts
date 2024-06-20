@@ -3,8 +3,8 @@ import {
   crowdFinancingV1FactoryAbi as abi,
   crowdFinancingV1FactoryAddress,
 } from '../generated.js';
-import { writePreparedAndFetchReceipt, getToFilteredLogs } from '../utils.js';
-import { TransactionReceipt, zeroAddress } from 'viem';
+import { writePreparedAndFetchReceipt } from '../utils.js';
+import { TransactionReceipt, parseEventLogs, zeroAddress } from 'viem';
 import { config, wagmiConfig } from '../config/index.js';
 
 export type CampaignConfig = {
@@ -49,9 +49,12 @@ export type FeeSchedule = {
 };
 
 function extractDeploymentAddress(receipt: TransactionReceipt): `0x${string}` {
-  return getToFilteredLogs(receipt, abi).find(
-    (log) => log.eventName === 'Deployment',
-  )?.args?.deployment;
+  const logs = parseEventLogs({
+    abi,
+    eventName: ['Deployment'],
+    logs: receipt.logs,
+  });
+  return logs[0]?.args?.deployment;
 }
 
 /// @dev The factory address is configurable per network, and common networks have pre-defined values
@@ -129,7 +132,7 @@ export async function prepareCampaignDeployment(
     config.chainId,
   );
 
-  const txn = await simulateContract(wagmiConfig(),{
+  const txn = await simulateContract(wagmiConfig(), {
     address: config.factoryAddress || contractAddress(),
     abi,
     functionName: 'deployCampaign',

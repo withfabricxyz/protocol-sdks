@@ -2,30 +2,37 @@ import {
   crowdFinancingV1FactoryAbi,
   crowdFinancingV1Abi,
   erc20TokenAbi,
+  stpv2Abi,
+  stpv2FactoryAbi,
 } from './generated.js';
 import {
   subscriptionTokenV1FactoryAbi,
   subscriptionTokenV1Abi,
 } from './generated.js';
 
-import { pollReceipt } from './utils.js';
-
 import {
   CrowdFinancingV1Bytecode,
   CrowdFinancingV1FactoryBytecode,
   ERC20TokenBytecode,
+  STPV2Bytecode,
+  STPV2FactoryBytecode,
 } from './bytecode.js';
 import {
   SubscriptionTokenV1Bytecode,
   SubscriptionTokenV1FactoryBytecode,
 } from './bytecode.js';
 import { WalletClient } from 'viem';
+import { waitForTransactionReceipt } from '@wagmi/core';
+import { wagmiConfig } from './config/index.js';
 
 async function resolveContract(
   hash: `0x${string}`,
   name: string,
 ): Promise<`0x${string}`> {
-  const { contractAddress, status } = await pollReceipt(hash);
+  const { contractAddress, status } = await waitForTransactionReceipt(
+    wagmiConfig(),
+    { hash },
+  );
   if (status !== 'success' || !contractAddress) {
     throw new Error(`Failed to deploy contract: ${name}`);
   }
@@ -54,6 +61,47 @@ export async function deployToken(
     args: [name, symbol, numTokens],
   });
   return resolveContract(hash, 'ERC20Token');
+}
+
+/**
+ * Deploy STP logic contract
+ * @param wallet the wallet to deploy from
+ * @returns contract address
+ */
+export async function deploySTPV2Logic(
+  wallet: WalletClient,
+): Promise<`0x${string}`> {
+  const hash = await wallet.deployContract({
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: stpv2Abi,
+    bytecode: STPV2Bytecode,
+  });
+  return resolveContract(hash, 'STPV2');
+}
+
+/**
+ * Deploy STP factory contract
+ * @param wallet the wallet to deploy from
+ * @param logicAddress address of STP logic contract
+ * @returns contract address
+ */
+export async function deploySTPV2Factory(
+  wallet: WalletClient,
+  logicAddress: `0x${string}`,
+  feeCollector?: `0x${string}`,
+): Promise<`0x${string}`> {
+  const hash = await wallet.deployContract({
+    chain: wallet.chain,
+    account: wallet.account!,
+    abi: stpv2FactoryAbi,
+    bytecode: STPV2FactoryBytecode,
+    args: [
+      logicAddress,
+      feeCollector || '0xF1f8CAC358a4c86979AFF1bD380498206E8224B6',
+    ],
+  });
+  return resolveContract(hash, 'STPV2Factory');
 }
 
 /**
