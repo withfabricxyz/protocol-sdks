@@ -386,13 +386,20 @@ export async function prepareCreateReferralCode(
   request: ContractRequest & {
     referralCode: bigint;
     bps: number;
+    permanent?: boolean;
+    referrer?: `0x${string}`;
   },
 ): Promise<() => Promise<TransactionReceipt>> {
   const txn = await simulateContract(wagmiConfig(), {
     abi,
     address: request.contractAddress,
     functionName: 'setReferralCode',
-    args: [request.referralCode, request.bps, false, zeroAddress],
+    args: [
+      request.referralCode,
+      request.bps,
+      request.permanent || false,
+      request.referrer || zeroAddress,
+    ],
     chainId: request.chainId,
   });
   return async () => writePreparedAndFetchReceipt(txn);

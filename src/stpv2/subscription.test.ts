@@ -170,9 +170,25 @@ test('Mint Referrals', async ({
     })
   )();
 
-  expect(
-    (await referralDetail({ contractAddress, code: 1n })).basisPoints,
-  ).toEqual(1000);
+  const adjustable = await referralDetail({ contractAddress, code: 1n });
+  expect(adjustable.basisPoints).toEqual(1000);
+  expect(adjustable.referrer).toEqual(zeroAddress);
+  expect(adjustable.permanent).toEqual(false);
+
+  await (
+    await prepareCreateReferralCode({
+      contractAddress,
+      referralCode: 2n,
+      permanent: true,
+      referrer: testAccount3,
+      bps: 1200,
+    })
+  )();
+
+  const perm = await referralDetail({ contractAddress, code: 2n });
+  expect(perm.basisPoints).toEqual(1200);
+  expect(perm.referrer).toEqual(testAccount3);
+  expect(perm.permanent).toEqual(true);
 
   const preBalance = await helpers.ethBalance(testAccount3);
   const { status } = await (
