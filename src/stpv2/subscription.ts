@@ -93,7 +93,13 @@ async function fetchCurrencyAddress({
 }
 
 function loadContract({ chainId, contractAddress }: ContractRequest) {
-  const client = getClient(wagmiConfig(), { chainId })!;
+  const client = getClient(wagmiConfig(), { chainId });
+
+  if (!client)
+    throw new Error(
+      `Unable to get client for chainId: ${chainId}. Please check your configuration.`,
+    );
+
   return getContract({
     address: contractAddress,
     abi,

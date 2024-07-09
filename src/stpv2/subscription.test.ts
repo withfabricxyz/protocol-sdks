@@ -613,3 +613,20 @@ test('Sub fetching', async ({ contractAddress }: TSubscriptionTestContext) => {
     expect(sub.tokenId).toEqual(hexToBigInt(sub.account));
   });
 });
+
+test('Misconfigured chain', async ({
+  contractAddress,
+}: TSubscriptionTestContext) => {
+  try {
+    await subscriptionOf({
+      contractAddress,
+      account: testAccount,
+      chainId: 2,
+    });
+    expect(false).toEqual(true);
+  } catch (e: any) {
+    expect(e.message).toEqual(
+      'Unable to get client for chainId: 2. Please check your configuration.',
+    );
+  }
+});
